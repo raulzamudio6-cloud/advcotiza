@@ -1,0 +1,4 @@
+# Logo de Agencia
+# Por favor coloque el archivo "logo sin fondo.png" en esta carpeta
+# El logo debe ser transparente y de alta calidad
+# Dimensiones recomendadas: 300x100 px

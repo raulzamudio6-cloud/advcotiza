@@ -1,0 +1,4 @@
+# MSI - Meses Sin Intereses
+# Por favor coloque el archivo "MSI.png" en esta carpeta
+# La imagen debe ser transparente y de alta calidad
+# Dimensiones recomendadas: 200x80 px
