@@ -118,6 +118,7 @@ const actionTypes = {
   ADD_EXTRA: 'ADD_EXTRA',
   UPDATE_EXTRA: 'UPDATE_EXTRA',
   REMOVE_EXTRA: 'REMOVE_EXTRA',
+  LOAD_QUOTATION: 'LOAD_QUOTATION',
   RESET_QUOTATION: 'RESET_QUOTATION'
 };
 
@@ -285,6 +286,12 @@ function quotationReducer(state, action) {
         }
       };
 
+    case actionTypes.LOAD_QUOTATION:
+      return {
+        ...initialState,
+        ...action.payload
+      };
+
     case actionTypes.RESET_QUOTATION:
       return initialState;
 
@@ -318,6 +325,8 @@ export function useTravelQuotation() {
     addExtra: () => dispatch({ type: actionTypes.ADD_EXTRA }),
     updateExtra: (id, updates) => dispatch({ type: actionTypes.UPDATE_EXTRA, payload: { id, updates } }),
     removeExtra: (id) => dispatch({ type: actionTypes.REMOVE_EXTRA, payload: { id } }),
+    
+    loadQuotation: (quotationData) => dispatch({ type: actionTypes.LOAD_QUOTATION, payload: quotationData }),
     
     resetQuotation: () => dispatch({ type: actionTypes.RESET_QUOTATION })
   };

@@ -4,7 +4,7 @@ import { Button } from './UI/Input';
 import jsPDF from 'jspdf';
 import { formatMXN } from '../utils/formatters';
 
-export const PDFGenerator = ({ state, calculations }) => {
+export const PDFGenerator = ({ state, calculations, tripDuration }) => {
   const selectedFlight = calculations.selectedFlight;
   const selectedAccommodation = calculations.selectedAccommodation;
   const { passengers, additionalServices } = state;
@@ -735,6 +735,14 @@ export const PDFGenerator = ({ state, calculations }) => {
             font-family: 'Verdana', sans-serif;
           }
           
+          .duration-subtitle {
+            font-size: 14px;
+            color: #6B7280;
+            font-style: italic;
+            margin-bottom: 8px;
+            font-family: 'Verdana', sans-serif;
+          }
+          
           .section {
             background: #F9FAFB;
             border: 1px solid #3B82F6;
@@ -922,6 +930,9 @@ export const PDFGenerator = ({ state, calculations }) => {
             <div class="date">Fecha: ${new Date().toLocaleDateString('es-MX')}</div>
           </div>
           <div class="title">${state.quotationTitle || 'COTIZACIÓN DE VIAJES'}</div>
+          ${tripDuration && tripDuration.valid ? 
+            `<div class="duration-subtitle">${tripDuration.days} Días / ${tripDuration.nights} Noches</div>` : ''
+          }
           <div class="subtitle">Cotización personalizada</div>
         </div>
         
@@ -945,37 +956,73 @@ export const PDFGenerator = ({ state, calculations }) => {
         <div class="section">
           <div class="section-title">DETALLES DEL VUELO</div>
           <div class="section-content">
-            ${selectedFlight.route && selectedFlight.route.origin && selectedFlight.route.destination ? 
-              `<p><strong>RUTA:</strong> ${selectedFlight.route.origin} ↔ ${selectedFlight.route.destination}</p>` : ''
-            }
             ${selectedFlight.airline ? `<p><strong>Aerolínea:</strong> ${selectedFlight.airline}</p>` : ''}
-            ${selectedFlight.outbound && selectedFlight.outbound.date ? 
-              `<p><strong>Salida:</strong> ${selectedFlight.outbound.date} ${selectedFlight.outbound.departureTime || ''}</p>` : ''
-            }
-            ${selectedFlight.outbound && selectedFlight.outbound.arrivalTime ? 
-              `<p><strong>Llegada:</strong> ${selectedFlight.outbound.arrivalTime}</p>` : ''
-            }
-            ${selectedFlight.outbound && selectedFlight.outbound.duration ? 
-              `<p><strong>Duración:</strong> ${selectedFlight.outbound.duration}</p>` : ''
-            }
-            ${selectedFlight.outbound && selectedFlight.outbound.stops ? 
-              `<p><strong>Escalas:</strong> ${selectedFlight.outbound.stops}</p>` : ''
-            }
-            ${selectedFlight.return && selectedFlight.return.date ? 
-              `<p><strong>Regreso:</strong> ${selectedFlight.return.date} ${selectedFlight.return.departureTime || ''}</p>` : ''
-            }
-            ${selectedFlight.return && selectedFlight.return.arrivalTime ? 
-              `<p><strong>Llegada Regreso:</strong> ${selectedFlight.return.arrivalTime}</p>` : ''
-            }
-            ${selectedFlight.return && selectedFlight.return.duration ? 
-              `<p><strong>Duración Regreso:</strong> ${selectedFlight.return.duration}</p>` : ''
-            }
-            ${selectedFlight.return && selectedFlight.return.stops ? 
-              `<p><strong>Escalas Regreso:</strong> ${selectedFlight.return.stops}</p>` : ''
-            }
-            ${selectedFlight.luggageDetail ? 
-              `<p><strong>Equipaje:</strong> ${selectedFlight.luggageDetail}</p>` : ''
-            }
+            
+            <table style="width: 100%; border-collapse: collapse; font-family: 'Verdana', sans-serif; margin: 10px 0;">
+              <thead>
+                <tr style="background: #f0f0f0; border-bottom: 2px solid #d0d0d0;">
+                  <th style="padding: 8px; text-align: left; font-size: 10px; font-weight: bold; color: #374151; border: 1px solid #d0d0d0;">Ruta (Escalas)</th>
+                  <th style="padding: 8px; text-align: left; font-size: 10px; font-weight: bold; color: #374151; border: 1px solid #d0d0d0;">Fecha</th>
+                  <th style="padding: 8px; text-align: left; font-size: 10px; font-weight: bold; color: #374151; border: 1px solid #d0d0d0;">Hora Salida</th>
+                  <th style="padding: 8px; text-align: left; font-size: 10px; font-weight: bold; color: #374151; border: 1px solid #d0d0d0;">Hora Llegada</th>
+                  <th style="padding: 8px; text-align: left; font-size: 10px; font-weight: bold; color: #374151; border: 1px solid #d0d0d0;">Duración del viaje</th>
+                  <th style="padding: 8px; text-align: left; font-size: 10px; font-weight: bold; color: #374151; border: 1px solid #d0d0d0;">Equipaje</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="border: 1px solid #d0d0d0;">
+                  <td style="padding: 8px; font-size: 9px; border: 1px solid #d0d0d0;">
+                    <div style="font-weight: bold; color: #3B82F6;">
+                      ${selectedFlight.outbound.origin || selectedFlight.route.origin || 'N/A'} → ${selectedFlight.outbound.destination || selectedFlight.route.destination || 'N/A'}
+                    </div>
+                    <div style="font-size: 8px; color: #6B7280; margin-top: 2px;">
+                      ${selectedFlight.outbound.stops || 'Vuelo Directo'}
+                    </div>
+                  </td>
+                  <td style="padding: 8px; font-size: 9px; border: 1px solid #d0d0d0;">
+                    ${selectedFlight.outbound.date ? formatDate(selectedFlight.outbound.date) : 'N/A'}
+                  </td>
+                  <td style="padding: 8px; font-size: 9px; border: 1px solid #d0d0d0;">
+                    ${selectedFlight.outbound.departureTime || '--:--'}
+                  </td>
+                  <td style="padding: 8px; font-size: 9px; border: 1px solid #d0d0d0;">
+                    ${selectedFlight.outbound.arrivalTime || '--:--'}
+                  </td>
+                  <td style="padding: 8px; font-size: 9px; border: 1px solid #d0d0d0;">
+                    <span style="display: inline-block; padding: 2px 6px; border-radius: 10px; font-size: 8px; font-weight: bold; background: #DBEAFE; color: #1E40AF;">
+                      ${selectedFlight.outbound.duration || '--'}
+                    </span>
+                  </td>
+                  <td style="padding: 8px; font-size: 8px; border: 1px solid #d0d0d0;" rowspan="2">
+                    ${selectedFlight.luggageDetail || 'No especificado'}
+                  </td>
+                </tr>
+                <tr style="border: 1px solid #d0d0d0;">
+                  <td style="padding: 8px; font-size: 9px; border: 1px solid #d0d0d0;">
+                    <div style="font-weight: bold; color: #EF4444;">
+                      ${selectedFlight.return.origin || selectedFlight.route.destination || 'N/A'} → ${selectedFlight.return.destination || selectedFlight.route.origin || 'N/A'}
+                    </div>
+                    <div style="font-size: 8px; color: #6B7280; margin-top: 2px;">
+                      ${selectedFlight.return.stops || 'Vuelo Directo'}
+                    </div>
+                  </td>
+                  <td style="padding: 8px; font-size: 9px; border: 1px solid #d0d0d0;">
+                    ${selectedFlight.return.date ? formatDate(selectedFlight.return.date) : 'N/A'}
+                  </td>
+                  <td style="padding: 8px; font-size: 9px; border: 1px solid #d0d0d0;">
+                    ${selectedFlight.return.departureTime || '--:--'}
+                  </td>
+                  <td style="padding: 8px; font-size: 9px; border: 1px solid #d0d0d0;">
+                    ${selectedFlight.return.arrivalTime || '--:--'}
+                  </td>
+                  <td style="padding: 8px; font-size: 9px; border: 1px solid #d0d0d0;">
+                    <span style="display: inline-block; padding: 2px 6px; border-radius: 10px; font-size: 8px; font-weight: bold; background: #FEE2E2; color: #991B1B;">
+                      ${selectedFlight.return.duration || '--'}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
         ` : ''}
@@ -984,17 +1031,22 @@ export const PDFGenerator = ({ state, calculations }) => {
         <div class="section">
           <div class="section-title">DETALLES DEL HOSPEDAJE</div>
           <div class="section-content">
+            <p><strong>Hotel:</strong> ${selectedAccommodation.name || 'No especificado'}</p>
+            <p><strong>Categoría:</strong> ${selectedAccommodation.category} estrellas</p>
+            ${selectedAccommodation.description ? `<p>${selectedAccommodation.description}</p>` : ''}
+            
             ${selectedAccommodation.images && selectedAccommodation.images.some(img => img && img.trim() !== '') ? 
-              `<div class="hotel-gallery">
-                ${selectedAccommodation.images.map((img, index) => 
-                  img && img.trim() !== '' ? 
-                    `<img src="${img}" alt="${selectedAccommodation.name} - Imagen ${index + 1}" class="hotel-image" onerror="this.style.display='none';">` : ''
-                ).join('')}
+              `<div style="margin-top: 15px;">
+                <div style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
+                  ${selectedAccommodation.images.map((img, index) => 
+                    img && img.trim() !== '' ? 
+                      `<div style="flex-shrink: 0;">
+                        <img src="${img}" alt="${selectedAccommodation.name} - Imagen ${index + 1}" style="width: 280px; height: 210px; object-fit: cover; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);" onerror="this.style.display='none';">
+                      </div>` : ''
+                  ).join('')}
+                </div>
               </div>` : ''
             }
-            <p>Hotel: ${selectedAccommodation.name || 'No especificado'}</p>
-            <p>Categoría: ${selectedAccommodation.category} estrellas</p>
-            ${selectedAccommodation.description ? `<p>${selectedAccommodation.description}</p>` : ''}
           </div>
         </div>
         ` : ''}

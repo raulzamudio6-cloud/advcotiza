@@ -4,7 +4,7 @@ import { Eye, DollarSign, Plane, Hotel, Car, Ticket, Users, Calendar, Star, Perc
 import { Card, CardHeader, CardContent } from './UI/Card';
 import { formatMXN } from '../utils/formatters';
 
-export const PreviewPanel = ({ state, calculations }) => {
+export const PreviewPanel = ({ state, calculations, tripDuration }) => {
   const selectedFlight = calculations.selectedFlight;
   const selectedAccommodation = calculations.selectedAccommodation;
   const { passengers, additionalServices } = state;
@@ -29,6 +29,11 @@ export const PreviewPanel = ({ state, calculations }) => {
         <div className="mb-6">
           <div className="bg-gradient-to-r from-blue-600 to-red-600 text-white p-4 rounded-lg">
             <h2 className="text-xl font-bold text-center">{state.quotationTitle}</h2>
+            {tripDuration && tripDuration.valid && (
+              <p className="text-center text-sm italic mt-2 opacity-90">
+                {tripDuration.days} Días / {tripDuration.nights} Noches
+              </p>
+            )}
           </div>
         </div>
       )}

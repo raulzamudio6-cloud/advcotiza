@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTravelQuotation } from './hooks/useTravelQuotation';
 import { Input, Button } from './components/UI/Input';
 import { Card, CardHeader, CardContent } from './components/UI/Card';
@@ -11,27 +11,130 @@ import { AdditionalServicesModule } from './components/AdditionalServicesModule'
 import { PreviewPanel } from './components/PreviewPanel';
 import { PDFGenerator } from './components/PDFGenerator';
 import { ExcelExport } from './components/ExcelExport';
+import { QuotationHistory } from './components/QuotationHistory';
+import { saveQuotation } from './services/storageService';
+import { validateQuotationData } from './utils/calculations';
 
 function App() {
   const { state, actions, calculations } = useTravelQuotation();
+  const [tripDuration, setTripDuration] = React.useState({ days: 0, nights: 0 });
+  const [currentView, setCurrentView] = useState('form'); // 'form' o 'history'
+  const [currentQuotationId, setCurrentQuotationId] = useState(null);
+  const [saveStatus, setSaveStatus] = useState(null);
 
   const handleClientInfoChange = (field, value) => {
     actions.setClientInfo({ [field]: value });
   };
 
+  const handleDurationChange = (duration) => {
+    setTripDuration(duration);
+  };
+
+  const handleSaveQuotation = async () => {
+    try {
+      setSaveStatus({ loading: true, message: null, error: null });
+      
+      // Validar datos antes de guardar
+      const validation = validateQuotationData(state);
+      if (!validation.valid) {
+        setSaveStatus({ 
+          loading: false, 
+          error: 'No se puede guardar: ' + validation.errors.join(', '), 
+          message: null 
+        });
+        return;
+      }
+      
+      // Preparar datos para guardar
+      const quotationData = {
+        ...state,
+        tripDuration
+      };
+      
+      const result = saveQuotation(quotationData);
+      
+      if (result.success) {
+        setCurrentQuotationId(result.id);
+        setSaveStatus({ 
+          loading: false, 
+          message: result.message, 
+          error: null 
+        });
+        
+        // Limpiar el mensaje después de 3 segundos
+        setTimeout(() => {
+          setSaveStatus(prev => ({ ...prev, message: null }));
+        }, 3000);
+      } else {
+        setSaveStatus({ 
+          loading: false, 
+          error: result.message, 
+          message: null 
+        });
+      }
+    } catch (error) {
+      setSaveStatus({ 
+        loading: false, 
+        error: 'Error al guardar la cotización: ' + error.message, 
+        message: null 
+      });
+    }
+  };
+
+  const handleLoadQuotation = (quotationData) => {
+    try {
+      // Cargar los datos en el estado
+      actions.loadQuotation(quotationData);
+      setCurrentQuotationId(quotationData.id);
+      setCurrentView('form');
+      
+      // Actualizar duración si está disponible
+      if (quotationData.tripDuration) {
+        setTripDuration(quotationData.tripDuration);
+      }
+      
+      setSaveStatus({ 
+        loading: false, 
+        message: 'Cotización cargada correctamente', 
+        error: null 
+      });
+      
+      // Limpiar el mensaje después de 3 segundos
+      setTimeout(() => {
+        setSaveStatus(prev => ({ ...prev, message: null }));
+      }, 3000);
+    } catch (error) {
+      setSaveStatus({ 
+        loading: false, 
+        error: 'Error al cargar la cotización: ' + error.message, 
+        message: null 
+      });
+    }
+  };
+
   const resetForm = () => {
     actions.resetQuotation();
+    setTripDuration({ days: 0, nights: 0 });
+    setCurrentQuotationId(null);
+    setSaveStatus(null);
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header onReset={resetForm} />
+      <Header 
+        onReset={resetForm} 
+        currentView={currentView}
+        onViewChange={setCurrentView}
+        onSaveQuotation={handleSaveQuotation}
+        saveStatus={saveStatus}
+      />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-          {/* Left Column - Form Sections */}
-          <div className="xl:col-span-2 space-y-6">
+        {currentView === 'form' ? (
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+            {/* Left Column - Form Sections */}
+            <div className="xl:col-span-2 space-y-6">
             {/* Título de la Cotización */}
             <Card>
               <CardHeader>
@@ -48,6 +151,27 @@ function App() {
                 <p className="text-xs text-gray-500 mt-2">
                   Este título será el elemento principal en el encabezado del PDF
                 </p>
+                
+                {/* Nuevo campo de duración del viaje */}
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Duración del Viaje
+                  </label>
+                  <input
+                    type="text"
+                    value={
+                      tripDuration.days > 0 && tripDuration.nights >= 0
+                        ? `${tripDuration.days} Días / ${tripDuration.nights} Noches`
+                        : 'Pendiente de fechas...'
+                    }
+                    readOnly
+                    className="w-full px-3 py-2 border border-dashed border-gray-300 bg-gray-50 text-gray-600 rounded-md cursor-not-allowed"
+                    title="Este campo se calcula automáticamente según las fechas del vuelo"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    <span className="italic">Información calculada automáticamente según las fechas de vuelo seleccionadas</span>
+                  </p>
+                </div>
               </CardContent>
             </Card>
 
@@ -110,6 +234,7 @@ function App() {
                   onUpdateFlight={actions.updateFlight}
                   onSelectFlight={actions.selectFlight}
                   passengers={state.passengers}
+                  onDurationChange={handleDurationChange}
                 />
               </CardContent>
             </Card>
@@ -149,6 +274,7 @@ function App() {
                   <PreviewPanel
                     state={state}
                     calculations={calculations}
+                    tripDuration={tripDuration}
                   />
                 </CardContent>
               </Card>
@@ -160,6 +286,7 @@ function App() {
                     <PDFGenerator
                       state={state}
                       calculations={calculations}
+                      tripDuration={tripDuration}
                     />
                     <ExcelExport
                       state={state}
@@ -171,6 +298,13 @@ function App() {
             </div>
           </div>
         </div>
+        ) : (
+          /* Vista de Historial de Cotizaciones */
+          <QuotationHistory 
+            onLoadQuotation={handleLoadQuotation}
+            currentQuotationId={currentQuotationId}
+          />
+        )}
       </main>
 
       {/* Footer */}

@@ -25,3 +25,66 @@
     @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
   }
 }
+
+/* Estilos de impresión para mantener la integridad de la tabla de vuelos */
+@media print {
+  /* Evitar que la tabla de vuelos se corte entre páginas */
+  table {
+    page-break-inside: avoid;
+    -webkit-column-break-inside: avoid;
+    break-inside: avoid;
+  }
+  
+  /* Asegurar que las filas de la tabla no se separen */
+  tr {
+    page-break-inside: avoid;
+    -webkit-column-break-inside: avoid;
+    break-inside: avoid;
+  }
+  
+  /* Evitar cortes en las tarjetas de vuelo */
+  .flight-card {
+    page-break-inside: avoid;
+    -webkit-column-break-inside: avoid;
+    break-inside: avoid;
+  }
+  
+  /* Mejorar la legibilidad en impresión */
+  body {
+    font-size: 12pt;
+    line-height: 1.4;
+  }
+  
+  /* Ocultar elementos innecesarios en impresión */
+  .no-print {
+    display: none !important;
+  }
+  
+  /* Asegurar colores adecuados para impresión */
+  .text-primary-600 {
+    color: #1f2937 !important; /* Gris oscuro para impresión */
+  }
+  
+  .bg-primary-50 {
+    background-color: #f9fafb !important; /* Gris muy claro para impresión */
+  }
+  
+  .border-primary-500 {
+    border-color: #9ca3af !important; /* Gris medio para impresión */
+  }
+  
+  /* Mejorar espaciado en tablas impresas */
+  table th, table td {
+    padding: 8px !important;
+    border: 1px solid #d1d5db !important;
+  }
+  
+  /* Asegurar que las imágenes de hoteles no se corten */
+  .hotel-image {
+    page-break-inside: avoid;
+    -webkit-column-break-inside: avoid;
+    break-inside: avoid;
+    max-width: 200px !important;
+    max-height: 150px !important;
+  }
+}

@@ -99,42 +99,6 @@ export const HotelCard = ({
       {...props}
     >
       <CardContent>
-        {/* Image Gallery Preview */}
-        <div className="mb-4">
-          {hasAnyImage ? (
-            <div className="grid grid-cols-3 gap-2">
-              {[0, 1, 2].map((index) => {
-                const imageUrl = hotel.images?.[index];
-                return imageUrl && imageUrl.trim() !== '' ? (
-                  <div key={index} className="relative">
-                    <img 
-                      src={imageUrl} 
-                      alt={`${hotel.name} - Imagen ${index + 1}`} 
-                      className="w-full h-24 object-cover rounded-lg"
-                      onError={handleImageError}
-                    />
-                  </div>
-                ) : (
-                  <div key={index} className="w-full h-24 bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
-                    <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="w-full h-24 bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
-              <div className="text-center">
-                <svg className="w-8 h-8 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <p className="text-sm text-gray-500">Sin imágenes</p>
-              </div>
-            </div>
-          )}
-        </div>
-
         {/* 1. Nombre del Hotel */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">Nombre del Hotel</label>
@@ -197,9 +161,46 @@ export const HotelCard = ({
           />
         </div>
 
-        {/* 4-6. Galería de Imágenes */}
+        {/* 4. Galería de Imágenes (ahora debajo del texto) */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Galería de Imágenes</label>
+          {hasAnyImage ? (
+            <div className="flex justify-center gap-3">
+              {[0, 1, 2].map((index) => {
+                const imageUrl = hotel.images?.[index];
+                return imageUrl && imageUrl.trim() !== '' ? (
+                  <div key={index} className="relative">
+                    <img 
+                      src={imageUrl} 
+                      alt={`${hotel.name} - Imagen ${index + 1}`} 
+                      className="w-[280px] h-[210px] object-cover rounded-lg shadow-sm hotel-image"
+                      onError={handleImageError}
+                    />
+                  </div>
+                ) : (
+                  <div key={index} className="w-[280px] h-[210px] bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
+                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="w-full h-[210px] bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
+              <div className="text-center">
+                <svg className="w-12 h-12 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <p className="text-sm text-gray-500">Sin imágenes</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 5-7. Configuración de Imágenes */}
         <div className="mb-4 space-y-3 border border-gray-200 rounded-lg p-4 bg-gray-50">
-          <label className="block text-sm font-semibold text-gray-700 mb-3">Galería de Imágenes del Hotel</label>
+          <label className="block text-sm font-semibold text-gray-700 mb-3">Configurar URLs de Imágenes</label>
           {[0, 1, 2].map((index) => (
             <div key={index} className="space-y-1">
               <label className="block text-sm font-medium text-gray-600">Enlace Foto {index + 1}:</label>
@@ -229,7 +230,7 @@ export const HotelCard = ({
               </div>
             </div>
           ))}
-          <p className="text-xs text-gray-500 mt-3 italic">Ingresa hasta 3 URLs de imágenes del hotel (400x300px recomendado)</p>
+          <p className="text-xs text-gray-500 mt-3 italic">Ingresa hasta 3 URLs de imágenes del hotel (280x210px recomendado)</p>
         </div>
 
         {/* 7. Precio Total */}
