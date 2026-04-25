@@ -34,9 +34,16 @@ function App() {
     try {
       setSaveStatus({ loading: true, message: null, error: null });
       
+      // Debug: Log del estado actual
+      console.log('Estado actual para guardar:', state);
+      console.log('Duración del viaje:', tripDuration);
+      
       // Validar datos antes de guardar
       const validation = validateQuotationData(state);
+      console.log('Resultado de validación:', validation);
+      
       if (!validation.valid) {
+        console.log('Errores de validación:', validation.errors);
         setSaveStatus({ 
           loading: false, 
           error: 'No se puede guardar: ' + validation.errors.join(', '), 
@@ -51,7 +58,10 @@ function App() {
         tripDuration
       };
       
+      console.log('Datos a guardar:', quotationData);
+      
       const result = saveQuotation(quotationData);
+      console.log('Resultado de guardado:', result);
       
       if (result.success) {
         setCurrentQuotationId(result.id);
@@ -66,6 +76,7 @@ function App() {
           setSaveStatus(prev => ({ ...prev, message: null }));
         }, 3000);
       } else {
+        console.log('Error en guardado:', result.message);
         setSaveStatus({ 
           loading: false, 
           error: result.message, 
@@ -73,6 +84,8 @@ function App() {
         });
       }
     } catch (error) {
+      console.error('Error crítico al guardar:', error);
+      console.error('Stack trace:', error.stack);
       setSaveStatus({ 
         loading: false, 
         error: 'Error al guardar la cotización: ' + error.message, 
@@ -92,6 +105,14 @@ function App() {
       if (quotationData.tripDuration) {
         setTripDuration(quotationData.tripDuration);
       }
+      
+      // Ejecutar validación silenciosa post-carga para verificar estado del formulario
+      setTimeout(() => {
+        const validation = validateQuotationData(quotationData);
+        if (!validation.valid) {
+          console.warn('Advertencia: La cotización cargada tiene inconsistencias:', validation.errors);
+        }
+      }, 100);
       
       setSaveStatus({ 
         loading: false, 
@@ -130,11 +151,12 @@ function App() {
       />
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        {currentView === 'form' ? (
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-            {/* Left Column - Form Sections */}
-            <div className="xl:col-span-2 space-y-6">
+      <main className="w-full px-4 py-8 min-h-screen">
+        <div className="w-full max-w-[95%] mx-auto xl:max-w-[1440px]">
+          {currentView === 'form' ? (
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 xl:gap-8">
+              {/* Left Column - Form Sections */}
+              <div className="xl:col-span-2 space-y-6">
             {/* Título de la Cotización */}
             <Card>
               <CardHeader>
@@ -296,8 +318,8 @@ function App() {
                 </CardContent>
               </Card>
             </div>
+            </div>
           </div>
-        </div>
         ) : (
           /* Vista de Historial de Cotizaciones */
           <QuotationHistory 
@@ -305,6 +327,7 @@ function App() {
             currentQuotationId={currentQuotationId}
           />
         )}
+        </div>
       </main>
 
       {/* Footer */}

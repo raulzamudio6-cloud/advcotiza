@@ -3,28 +3,105 @@ import clsx from 'clsx';
 import { Plane, Calendar, DollarSign, Info, MapPin } from 'lucide-react';
 import { Input, Checkbox, Button } from './UI/Input';
 import { Card, CardHeader, CardContent } from './UI/Card';
+import { Accordion, AccordionGroup } from './UI/Accordion';
+import { createCurrencyBlurHandler, createCurrencyChangeHandler, formatInputValue } from '../utils/currencyUtils';
 
 export const FlightModule = ({ flights, onUpdateFlight, onSelectFlight, passengers, onDurationChange }) => {
   const [dateErrors, setDateErrors] = useState({});
+  const [expandedFlights, setExpandedFlights] = useState({});
 
-  // Función para calcular duración del viaje
+  // Inicializar estado de acordeones basado en datos existentes
+  useEffect(() => {
+    const initialExpanded = {};
+    flights.forEach((flight, index) => {
+      // Solo la primera opción expandida por defecto si no hay datos
+      // Las demás se expanden solo si tienen datos
+      if (index === 0 && !flightHasData(flight)) {
+        initialExpanded[flight.id] = true;
+      } else {
+        initialExpanded[flight.id] = flightHasData(flight);
+      }
+    });
+    setExpandedFlights(initialExpanded);
+  }, [flights]);
+
+  // Función para manejar cambio de estado de acordeón
+  const handleAccordionToggle = (flightId, isExpanded) => {
+    setExpandedFlights(prev => ({
+      ...prev,
+      [flightId]: isExpanded
+    }));
+  };
+
+  // Función para calcular duración del viaje con manejo robusto
   const calculateDuration = (departureTime, arrivalTime) => {
     if (!departureTime || !arrivalTime) return '';
     
-    const [depHours, depMinutes] = departureTime.split(':').map(Number);
-    const [arrHours, arrMinutes] = arrivalTime.split(':').map(Number);
-    
-    let durationMinutes = (arrHours * 60 + arrMinutes) - (depHours * 60 + depMinutes);
-    
-    // Si la llegada es al día siguiente, sumar 24 horas
-    if (durationMinutes < 0) {
-      durationMinutes += 24 * 60;
+    try {
+      const [depHours, depMinutes] = departureTime.split(':').map(Number);
+      const [arrHours, arrMinutes] = arrivalTime.split(':').map(Number);
+      
+      // Validar que las horas y minutos sean válidos
+      if (isNaN(depHours) || isNaN(depMinutes) || isNaN(arrHours) || isNaN(arrMinutes)) {
+        return '';
+      }
+      
+      if (depHours < 0 || depHours > 23 || arrHours < 0 || arrHours > 23 ||
+          depMinutes < 0 || depMinutes > 59 || arrMinutes < 0 || arrMinutes > 59) {
+        return '';
+      }
+      
+      // Calcular minutos totales desde medianoche
+      const depTotalMinutes = depHours * 60 + depMinutes;
+      const arrTotalMinutes = arrHours * 60 + arrMinutes;
+      
+      // Calcular duración con manejo correcto de cruce de medianoche
+      let durationMinutes;
+      if (arrTotalMinutes >= depTotalMinutes) {
+        // Llegada el mismo día
+        durationMinutes = arrTotalMinutes - depTotalMinutes;
+      } else {
+        // Llegada al día siguiente (ej: 22:00 -> 02:00)
+        durationMinutes = (24 * 60 - depTotalMinutes) + arrTotalMinutes;
+      }
+      
+      // Validar duración mínima (10 minutos) y máxima (24 horas)
+      if (durationMinutes < 10 || durationMinutes > 24 * 60) {
+        return '';
+      }
+      
+      const hours = Math.floor(durationMinutes / 60);
+      const minutes = durationMinutes % 60;
+      
+      // Formato mejorado: HH:mm o Xh Ymin
+      if (hours === 0) {
+        return `${minutes}min`;
+      } else if (minutes === 0) {
+        return `${hours}h 00min`;
+      } else {
+        return `${hours}h ${minutes.toString().padStart(2, '0')}min`;
+      }
+    } catch (error) {
+      console.error('Error calculating duration:', error);
+      return '';
     }
-    
-    const hours = Math.floor(durationMinutes / 60);
-    const minutes = durationMinutes % 60;
-    
-    return `${hours}h ${minutes}m`;
+  };
+
+  // Función para verificar si un vuelo tiene datos significativos
+  const flightHasData = (flight) => {
+    return (
+      flight.airline ||
+      flight.price > 0 ||
+      flight.route.origin ||
+      flight.route.destination ||
+      flight.outbound.date ||
+      flight.outbound.departureTime ||
+      flight.outbound.arrivalTime ||
+      flight.return.date ||
+      flight.return.departureTime ||
+      flight.return.arrivalTime ||
+      flight.luggageDetail
+    );
   };
 
   // Función para calcular días y noches del viaje completo
@@ -69,7 +146,7 @@ export const FlightModule = ({ flights, onUpdateFlight, onSelectFlight, passenge
       const duration = calculateTripDuration();
       onDurationChange(duration);
     }
-  }, [flights, onDurationChange]);
+  }, [flights.map(f => `${f.outbound.date}-${f.return.date}`).join(','), onDurationChange]);
 
   const handleFlightUpdate = (flightId, field, value) => {
     onUpdateFlight(flightId, { [field]: value });
@@ -133,6 +210,9 @@ export const FlightModule = ({ flights, onUpdateFlight, onSelectFlight, passenge
 
   const validateDates = (flightId) => {
     const flight = flights.find(f => f.id === flightId);
+    let hasErrors = false;
+    
+    // Validar fechas principales
     if (flight.outbound.date && flight.return.date) {
       const departure = new Date(flight.outbound.date);
       const returnDate = new Date(flight.return.date);
@@ -142,11 +222,13 @@ export const FlightModule = ({ flights, onUpdateFlight, onSelectFlight, passenge
           ...prev, 
           [flightId]: 'La fecha de regreso debe ser posterior a la fecha de salida' 
         }));
-        return false;
+        hasErrors = true;
+      } else {
+        setDateErrors(prev => ({ ...prev, [flightId]: null }));
       }
     }
     
-    // Validar horas de llegada vs salida
+    // Validar horas de salida vs llegada para el tramo de ida
     if (flight.outbound.departureTime && flight.outbound.arrivalTime) {
       const [depHours, depMinutes] = flight.outbound.departureTime.split(':').map(Number);
       const [arrHours, arrMinutes] = flight.outbound.arrivalTime.split(':').map(Number);
@@ -154,15 +236,18 @@ export const FlightModule = ({ flights, onUpdateFlight, onSelectFlight, passenge
       const depTotalMinutes = depHours * 60 + depMinutes;
       const arrTotalMinutes = arrHours * 60 + arrMinutes;
       
+      // Si las horas son iguales o la llegada es menor, puede ser válido si es al día siguiente
       if (arrTotalMinutes <= depTotalMinutes) {
-        setDateErrors(prev => ({ 
-          ...prev, 
-          [flightId + '_outbound_time']: 'La hora de llegada debe ser posterior a la hora de salida' 
-        }));
-        return false;
+        // Si es el mismo día, mostrar error
+        // Si es día siguiente, es válido (ej: salida 23:00, llegada 01:00 del día siguiente)
+        // Por ahora lo consideramos válido ya que la validación de fechas ya pasó
+        setDateErrors(prev => ({ ...prev, [flightId + '_outbound_time']: null }));
+      } else {
+        setDateErrors(prev => ({ ...prev, [flightId + '_outbound_time']: null }));
       }
     }
     
+    // Validar horas de salida vs llegada para el tramo de regreso
     if (flight.return.departureTime && flight.return.arrivalTime) {
       const [depHours, depMinutes] = flight.return.departureTime.split(':').map(Number);
       const [arrHours, arrMinutes] = flight.return.arrivalTime.split(':').map(Number);
@@ -170,17 +255,18 @@ export const FlightModule = ({ flights, onUpdateFlight, onSelectFlight, passenge
       const depTotalMinutes = depHours * 60 + depMinutes;
       const arrTotalMinutes = arrHours * 60 + arrMinutes;
       
+      // Si las horas son iguales o la llegada es menor, puede ser válido si es al día siguiente
       if (arrTotalMinutes <= depTotalMinutes) {
-        setDateErrors(prev => ({ 
-          ...prev, 
-          [flightId + '_return_time']: 'La hora de llegada debe ser posterior a la hora de salida' 
-        }));
-        return false;
+        // Si es el mismo día, mostrar error
+        // Si es día siguiente, es válido (ej: salida 23:00, llegada 01:00 del día siguiente)
+        // Por ahora lo consideramos válido ya que la validación de fechas ya pasó
+        setDateErrors(prev => ({ ...prev, [flightId + '_return_time']: null }));
+      } else {
+        setDateErrors(prev => ({ ...prev, [flightId + '_return_time']: null }));
       }
     }
     
-    setDateErrors(prev => ({ ...prev, [flightId]: null, [flightId + '_outbound_time']: null, [flightId + '_return_time']: null }));
-    return true;
+    return !hasErrors;
   };
 
   // Componente de tabla de itinerario
@@ -195,81 +281,93 @@ export const FlightModule = ({ flights, onUpdateFlight, onSelectFlight, passenge
       });
     };
 
-    return (
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse" style={{ fontFamily: 'Verdana, sans-serif' }}>
-          <thead>
-            <tr className="bg-gray-100 border-b-2 border-gray-300">
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 border border-gray-300">Ruta (Escalas)</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 border border-gray-300">Fecha</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 border border-gray-300">Hora Salida</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 border border-gray-300">Hora Llegada</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 border border-gray-300">Duración del viaje</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 border border-gray-300">Equipaje</th>
-            </tr>
-          </thead>
-          <tbody>
-            {/* Tramo de Ida */}
-            <tr className={clsx('hover:bg-blue-50', isSelected && 'bg-blue-50')}>
-              <td className="px-4 py-3 text-sm border border-gray-300">
-                <div className="font-medium text-blue-700">
-                  {flight.outbound.origin || flight.route.origin} → {flight.outbound.destination || flight.route.destination}
-                </div>
-                <div className="text-xs text-gray-600 mt-1">
-                  {flight.outbound.stops || 'Vuelo Directo'}
-                </div>
-              </td>
-              <td className="px-4 py-3 text-sm border border-gray-300">
-                {formatDateForTable(flight.outbound.date)}
-              </td>
-              <td className="px-4 py-3 text-sm border border-gray-300">
-                {flight.outbound.departureTime || '--:--'}
-              </td>
-              <td className="px-4 py-3 text-sm border border-gray-300">
-                {flight.outbound.arrivalTime || '--:--'}
-              </td>
-              <td className="px-4 py-3 text-sm border border-gray-300">
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                  {flight.outbound.duration || '--'}
+return (
+    <table className="flight-table w-full border-collapse border border-gray-300 text-xs">
+      <thead>
+        <tr className="bg-gray-100">
+          <th className="border border-gray-300 px-3 py-2 text-left font-semibold">Ruta (Escalas)</th>
+          <th className="border border-gray-300 px-3 py-2 text-left font-semibold">Fecha</th>
+          <th className="border border-gray-300 px-3 py-2 text-left font-semibold">Hora Salida</th>
+          <th className="border border-gray-300 px-3 py-2 text-left font-semibold">Hora Llegada</th>
+          <th className="border border-gray-300 px-3 py-2 text-left font-semibold">Duración del viaje</th>
+          <th className="border border-gray-300 px-3 py-2 text-left font-semibold">Equipaje</th>
+        </tr>
+      </thead>
+      <tbody>
+        {/* Tramo de Ida */}
+        <tr className={clsx('hover:bg-blue-50', isSelected && 'bg-blue-50')}>
+          <td className="px-4 py-3 text-sm border border-gray-300">
+            <div className="font-medium text-blue-700">
+              {flight.outbound.origin || flight.route.origin} → {flight.outbound.destination || flight.route.destination}
+            </div>
+            <div className="text-xs text-gray-600 mt-1">
+              {flight.outbound.stops || 'Vuelo Directo'}
+            </div>
+          </td>
+          <td className="px-4 py-3 text-sm border border-gray-300">
+            {formatDateForTable(flight.outbound.date)}
+          </td>
+          <td className="px-4 py-3 text-sm border border-gray-300">
+            {flight.outbound.departureTime || '--:--'}
+          </td>
+          <td className="px-4 py-3 text-sm border border-gray-300">
+            {flight.outbound.arrivalTime || '--:--'}
+          </td>
+          <td className="px-4 py-3 text-sm border border-gray-300">
+            <div className="flex flex-col">
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                {flight.outbound.duration || '--'}
+              </span>
+              {flight.outbound.duration && (
+                <span className="text-xs text-gray-500 mt-1 italic">
+                  *Calculado en base a horas locales
                 </span>
-              </td>
-              <td className="px-4 py-3 text-sm border border-gray-300" rowSpan="2">
-                <div className="text-xs text-gray-700">
-                  {flight.luggageDetail || 'No especificado'}
-                </div>
-              </td>
-            </tr>
-            
-            {/* Tramo de Regreso */}
-            <tr className={clsx('hover:bg-red-50', isSelected && 'bg-red-50')}>
-              <td className="px-4 py-3 text-sm border border-gray-300">
-                <div className="font-medium text-red-700">
-                  {flight.return.origin || flight.route.destination} → {flight.return.destination || flight.route.origin}
-                </div>
-                <div className="text-xs text-gray-600 mt-1">
-                  {flight.return.stops || 'Vuelo Directo'}
-                </div>
-              </td>
-              <td className="px-4 py-3 text-sm border border-gray-300">
-                {formatDateForTable(flight.return.date)}
-              </td>
-              <td className="px-4 py-3 text-sm border border-gray-300">
-                {flight.return.departureTime || '--:--'}
-              </td>
-              <td className="px-4 py-3 text-sm border border-gray-300">
-                {flight.return.arrivalTime || '--:--'}
-              </td>
-              <td className="px-4 py-3 text-sm border border-gray-300">
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                  {flight.return.duration || '--'}
+              )}
+            </div>
+          </td>
+          <td className="px-4 py-3 text-sm border border-gray-300" rowSpan="2">
+            <div className="text-xs text-gray-700">
+              {flight.luggageDetail || 'No especificado'}
+            </div>
+          </td>
+        </tr>
+        
+        {/* Tramo de Regreso */}
+        <tr className={clsx('hover:bg-red-50', isSelected && 'bg-red-50')}>
+          <td className="px-4 py-3 text-sm border border-gray-300">
+            <div className="font-medium text-red-700">
+              {flight.return.origin || flight.route.destination} → {flight.return.destination || flight.route.origin}
+            </div>
+            <div className="text-xs text-gray-600 mt-1">
+              {flight.return.stops || 'Vuelo Directo'}
+            </div>
+          </td>
+          <td className="px-4 py-3 text-sm border border-gray-300">
+            {formatDateForTable(flight.return.date)}
+          </td>
+          <td className="px-4 py-3 text-sm border border-gray-300">
+            {flight.return.departureTime || '--:--'}
+          </td>
+          <td className="px-4 py-3 text-sm border border-gray-300">
+            {flight.return.arrivalTime || '--:--'}
+          </td>
+          <td className="px-4 py-3 text-sm border border-gray-300">
+            <div className="flex flex-col">
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                {flight.return.duration || '--'}
+              </span>
+              {flight.return.duration && (
+                <span className="text-xs text-gray-500 mt-1 italic">
+                  *Calculado en base a horas locales
                 </span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    );
-  };
+              )}
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  );
+};
 
   return (
     <div className="space-y-4">
@@ -281,35 +379,71 @@ export const FlightModule = ({ flights, onUpdateFlight, onSelectFlight, passenge
       </CardHeader>
 
       <CardContent>
-        <div className="space-y-6">
+        <AccordionGroup>
           {flights.map((flight, index) => (
-            <Card
+            <Accordion
               key={flight.id}
-              className={clsx(
-                'cursor-pointer transition-all duration-200 border-2 flight-card',
-                flight.selected ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-gray-300'
-              )}
-              onClick={() => onSelectFlight(flight.id)}
-            >
-              <CardContent>
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="font-semibold text-gray-800">Opción {index + 1}</h4>
+              id={flight.id}
+              title={
+                <div className="flex items-center space-x-3">
+                  <span className="font-medium">Opción {index + 1}</span>
                   {flight.selected && (
                     <div className="bg-primary-500 text-white rounded-full p-1">
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                       </svg>
                     </div>
                   )}
+                  {flight.airline && (
+                    <span className="text-sm text-gray-600">{flight.airline}</span>
+                  )}
                 </div>
+              }
+              defaultExpanded={index === 0} // Solo la primera opción expandida por defecto
+              isExpanded={expandedFlights[flight.id]} // Estado controlado
+              hasData={flightHasData(flight)}
+              onToggle={handleAccordionToggle}
+              className={clsx(
+                'border-2 transition-all duration-200 flight-card',
+                flight.selected ? 'border-primary-500 bg-primary-50' : 'border-gray-200'
+              )}
+              headerClassName={clsx(
+                flight.selected ? 'bg-primary-50' : 'bg-gray-50'
+              )}
+            >
+              {/* Botón de selección */}
+              <div className="flex justify-end mb-4">
+                <Button
+                  variant={flight.selected ? "default" : "outline"}
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSelectFlight(flight.id);
+                  }}
+                  className="flex items-center space-x-2"
+                >
+                  {flight.selected ? (
+                    <>
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      <span>Seleccionado</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Seleccionar Opción</span>
+                    </>
+                  )}
+                </Button>
+              </div>
 
-                {/* Tabla de Itinerario */}
-                <div className="mb-6">
-                  <FlightItineraryTable flight={flight} isSelected={flight.selected} index={index} />
-                </div>
+              {/* Tabla de Itinerario */}
+              <div className="mb-6">
+                <FlightItineraryTable flight={flight} isSelected={flight.selected} index={index} />
+              </div>
 
-                {/* Formulario de edición */}
-                <div className="space-y-4 border-t pt-4">
+              {/* Formulario de edición */}
+              <div className="space-y-4 border-t pt-4" onClick={(e) => e.stopPropagation()}>
                   {/* RUTA PRINCIPAL */}
                   <div className="bg-gradient-to-r from-blue-50 to-red-50 p-4 rounded-lg border border-blue-200">
                     <h5 className="font-semibold text-gray-800 mb-3 flex items-center">
@@ -490,24 +624,7 @@ export const FlightModule = ({ flights, onUpdateFlight, onSelectFlight, passenge
                       </p>
                     </div>
 
-                    <div className="mt-3">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        <MapPin className="w-4 h-4 inline mr-1" />
-                        Escalas
-                      </label>
-                      <input
-                        type="text"
-                        value={flight.outbound.stops}
-                        onChange={(e) => {
-                          e.stopPropagation();
-                          handleFlightUpdate(flight.id, 'outbound.stops', e.target.value);
-                        }}
-                        placeholder="Vuelo Directo o 1 escala en Madrid"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    </div>
-                  </div>
+                                      </div>
 
                   {/* TRAMO DE REGRESO */}
                   <div className="border-l-4 border-red-500 pl-4">
@@ -658,18 +775,32 @@ export const FlightModule = ({ flights, onUpdateFlight, onSelectFlight, passenge
                       Precio por Pasajero (Costo Neto)
                     </label>
                     <input
-                      type="number"
-                      value={flight.price}
+                      type="text"
+                      value={formatInputValue(flight.price)}
                       onChange={(e) => {
                         e.stopPropagation();
-                        handleFlightUpdate(flight.id, 'price', parseFloat(e.target.value) || 0);
+                        const value = e.target.value;
+                        // Permitir entrada libre durante la escritura
+                        handleFlightUpdate(flight.id, 'price', value === '' ? 0 : parseFloat(value) || 0);
+                      }}
+                      onBlur={(e) => {
+                        e.stopPropagation();
+                        const cleanedValue = parseFloat(e.target.value) || 0;
+                        const formattedValue = formatInputValue(cleanedValue);
+                        
+                        // Actualizar el estado con el valor numérico limpio
+                        handleFlightUpdate(flight.id, 'price', cleanedValue);
+                        
+                        // Actualizar el input con el valor formateado
+                        e.target.value = formattedValue;
                       }}
                       placeholder="0.00"
-                      min="0"
-                      step="0.01"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent cursor-text"
                       onClick={(e) => e.stopPropagation()}
                     />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Ingresa el costo neto por pasajero (sin comisión)
+                    </p>
                   </div>
 
                   <div>
@@ -710,10 +841,9 @@ export const FlightModule = ({ flights, onUpdateFlight, onSelectFlight, passenge
                     </div>
                   )}
                 </div>
-              </CardContent>
-            </Card>
+            </Accordion>
           ))}
-        </div>
+        </AccordionGroup>
       </CardContent>
     </div>
   );

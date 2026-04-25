@@ -26,17 +26,137 @@
   }
 }
 
+/* Estilos para pantallas grandes - Liquid Layout */
+@media (min-width: 1440px) {
+  .flight-table {
+    width: 100%;
+    table-layout: fixed;
+    overflow: visible;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+  
+  .flight-table th,
+  .flight-table td {
+    padding: 12px 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 120px;
+  }
+  
+  .flight-table th:nth-child(1),
+  .flight-table td:nth-child(1) {
+    min-width: 200px; /* Ruta - más ancha */
+  }
+  
+  .flight-table th:nth-child(2),
+  .flight-table td:nth-child(2) {
+    min-width: 120px; /* Fecha */
+  }
+  
+  .flight-table th:nth-child(3),
+  .flight-table td:nth-child(3) {
+    min-width: 100px; /* Hora Salida */
+  }
+  
+  .flight-table th:nth-child(4),
+  .flight-table td:nth-child(4) {
+    min-width: 100px; /* Hora Llegada */
+  }
+  
+  .flight-table th:nth-child(5),
+  .flight-table td:nth-child(5) {
+    min-width: 120px; /* Duración */
+  }
+  
+  .flight-table th:nth-child(6),
+  .flight-table td:nth-child(6) {
+    min-width: 150px; /* Equipaje */
+  }
+  
+  /* Expandir textareas en pantallas grandes */
+  textarea {
+    min-height: 120px;
+    resize: vertical;
+  }
+  
+  /* Grid mejorado para formularios */
+  .form-grid-large {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+  }
+  
+  .form-grid-medium {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+}
+
+/* Estilos base para tabla de vuelos */
+.flight-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: visible;
+  font-size: 13px;
+}
+
+.flight-table th,
+.flight-table td {
+  border: 1px solid #d1d5db;
+  padding: 8px 6px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.flight-table th {
+  background-color: #f9fafb;
+  font-weight: 600;
+  color: #374151;
+}
+
+.flight-table td {
+  background-color: #ffffff;
+}
+
+.flight-table tr:hover td {
+  background-color: #f3f4f6;
+}
+
+/* Estilos para pantallas ultra grandes */
+@media (min-width: 1920px) {
+  .flight-table {
+    font-size: 15px;
+  }
+  
+  .flight-table th,
+  .flight-table td {
+    padding: 14px 10px;
+  }
+  
+  .form-grid-large {
+    grid-template-columns: repeat(5, 1fr);
+  }
+  
+  .form-grid-medium {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
 /* Estilos de impresión para mantener la integridad de la tabla de vuelos */
 @media print {
   /* Evitar que la tabla de vuelos se corte entre páginas */
-  table {
+  .flight-table {
     page-break-inside: avoid;
     -webkit-column-break-inside: avoid;
     break-inside: avoid;
   }
   
-  /* Asegurar que las filas de la tabla no se separen */
-  tr {
+  /* Asegurar que las filas de la tabla no separen */
+  .flight-table tr {
     page-break-inside: avoid;
     -webkit-column-break-inside: avoid;
     break-inside: avoid;

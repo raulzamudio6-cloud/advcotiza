@@ -149,11 +149,11 @@ export const calculateFlightTotal = (flights, passengerCount, commissionRate) =>
 export const calculateAccommodationTotal = (accommodations, passengerCount, commissionRate) => {
   try {
     const selectedAccommodation = accommodations.find(a => a.selected);
-    if (!selectedAccommodation || !selectedAccommodation.price) {
+    if (!selectedAccommodation || !selectedAccommodation.totalPrice) {
       return 0;
     }
     
-    const basePrice = parseFloat(selectedAccommodation.price) || 0;
+    const basePrice = parseFloat(selectedAccommodation.totalPrice) || 0;
     const subtotal = calculateSubtotal(basePrice, passengerCount);
     
     return calculatePriceWithCommission(subtotal, commissionRate);
@@ -370,8 +370,13 @@ export const validateQuotationData = (data) => {
       if (!selectedAccommodation) {
         errors.push('Debe seleccionar una opción de alojamiento');
       } else {
-        if (!selectedAccommodation.price || selectedAccommodation.price <= 0) {
-          errors.push('El alojamiento seleccionado debe tener un precio válido');
+        // Validación condicional: solo validar precio si el hotel tiene nombre
+        if (selectedAccommodation.name && selectedAccommodation.name.trim() !== '') {
+          // Convertir totalPrice a número para validación (coincidente con el campo del formulario)
+          const accommodationPrice = parseFloat(selectedAccommodation.totalPrice) || 0;
+          if (accommodationPrice <= 0) {
+            errors.push('El alojamiento seleccionado debe tener un precio válido mayor a 0');
+          }
         }
       }
     }

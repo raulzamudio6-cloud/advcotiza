@@ -13,7 +13,7 @@ const STORAGE_KEY = 'advCotiza_quotations';
 const QUOTATION_SCHEMA = {
   version: DATA_VERSION,
   id: 'string',
-  title: 'string',
+  quotationTitle: 'string',
   clientInfo: {
     name: 'string',
     email: 'string',
@@ -49,7 +49,7 @@ const validateQuotationData = (data) => {
     }
 
     // Validar campos requeridos
-    const requiredFields = ['id', 'title', 'clientInfo', 'passengers', 'flights', 'accommodations', 'additionalServices'];
+    const requiredFields = ['id', 'quotationTitle', 'clientInfo', 'passengers', 'flights', 'accommodations', 'additionalServices'];
     for (const field of requiredFields) {
       if (data[field] === undefined || data[field] === null) {
         throw new Error(`Campo requerido faltante: ${field}`);
@@ -84,18 +84,59 @@ const validateQuotationData = (data) => {
  * Limpia y normaliza los datos antes de guardar
  */
 const sanitizeQuotationData = (data) => {
+  // Sanitizar vuelos asegurando precio y duración
+  const sanitizedFlights = Array.isArray(data.flights) ? data.flights.map(flight => ({
+    ...flight,
+    id: flight.id || Date.now(),
+    airline: flight.airline || '',
+    price: typeof flight.price === 'number' ? flight.price : parseFloat(flight.price) || 0,
+    route: {
+      origin: flight.route?.origin || '',
+      destination: flight.route?.destination || ''
+    },
+    outbound: {
+      date: flight.outbound?.date || '',
+      departureTime: flight.outbound?.departureTime || '',
+      arrivalTime: flight.outbound?.arrivalTime || '',
+      duration: flight.outbound?.duration || '',
+      stops: flight.outbound?.stops || ''
+    },
+    return: {
+      date: flight.return?.date || '',
+      departureTime: flight.return?.departureTime || '',
+      arrivalTime: flight.return?.arrivalTime || '',
+      duration: flight.return?.duration || '',
+      stops: flight.return?.stops || ''
+    },
+    luggageDetail: flight.luggageDetail || '',
+    selected: Boolean(flight.selected)
+  })) : [];
+
+  // Sanitizar alojamientos asegurando precio
+  const sanitizedAccommodations = Array.isArray(data.accommodations) ? data.accommodations.map(acc => ({
+    ...acc,
+    id: acc.id || Date.now(),
+    name: acc.name || '',
+    category: typeof acc.category === 'number' ? acc.category : parseInt(acc.category) || 0,
+    price: typeof acc.price === 'number' ? acc.price : parseFloat(acc.price) || 0,
+    totalPrice: typeof acc.totalPrice === 'number' ? acc.totalPrice : parseFloat(acc.totalPrice) || 0,
+    description: acc.description || '',
+    images: Array.isArray(acc.images) ? acc.images : [],
+    selected: Boolean(acc.selected)
+  })) : [];
+
   const sanitized = {
     version: DATA_VERSION,
     id: data.id || generateId(),
-    title: data.quotationTitle || 'Sin título',
+    quotationTitle: data.quotationTitle || 'Sin título',
     clientInfo: {
       name: data.clientInfo?.name || '',
       email: data.clientInfo?.email || '',
       phone: data.clientInfo?.phone || ''
     },
     passengers: Array.isArray(data.passengers) ? data.passengers : [],
-    flights: Array.isArray(data.flights) ? data.flights : [],
-    accommodations: Array.isArray(data.accommodations) ? data.accommodations : [],
+    flights: sanitizedFlights,
+    accommodations: sanitizedAccommodations,
     additionalServices: {
       transfers: data.additionalServices?.transfers || { standard: false, extraDetail: '', extraPrice: 0, standardPrice: 0 },
       extras: Array.isArray(data.additionalServices?.extras) ? data.additionalServices.extras : []

@@ -1063,18 +1063,24 @@ export const PDFGenerator = ({ state, calculations, tripDuration }) => {
               `<p>Traslados Extras: ${additionalServices.transfers.extraDetail}</p>` : ''
             }
             
-            ${additionalServices.extras.map((extra, index) => 
-              extra.name ? `<p>${extra.name}</p>` : ''
-            ).join('')}
-            ${additionalServices.extras.map(extra => 
-              `<div style="margin-bottom: 10px;">
-                ${extra.image ? 
-                  `<img src="${extra.image}" alt="${extra.name}" class="extra-image">` :
-                  `<div class="image-placeholder">Sin imagen</div>`
-                }
-                <p>${extra.name || 'Extra sin nombre'}</p>
-              </div>`
-            ).join('')}
+            ${additionalServices.extras.length > 0 ? 
+              `<ul style="list-style: none; padding: 0; margin: 10px 0;">
+                ${additionalServices.extras.map(extra => 
+                  extra.name ? `
+                    <li style="margin-bottom: 15px; display: flex; align-items: flex-start; gap: 10px;">
+                      ${extra.image ? 
+                        `<img src="${extra.image}" alt="${extra.name}" style="max-width: 100px; max-height: 80px; object-fit: cover; border-radius: 4px; flex-shrink: 0;">` :
+                        `<div style="width: 100px; height: 80px; background: #E5E7EB; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #6B7280; font-size: 12px; flex-shrink: 0;">Sin imagen</div>`
+                      }
+                      <div style="flex: 1;">
+                        <p style="margin: 0; font-weight: bold; color: #374151;">${extra.name}</p>
+                        <p style="margin: 5px 0 0 0; color: #6B7280; font-size: 10px; font-style: italic;">Servicio adicional incluido</p>
+                      </div>
+                    </li>
+                  ` : ''
+                ).join('')}
+              </ul>` : ''
+            }
           </div>
         </div>
         ` : ''}
