@@ -278,10 +278,12 @@ function App() {
                 <AdditionalServicesModule
                   transfers={state.additionalServices.transfers}
                   extras={state.additionalServices.extras}
+                  applyCommissionToExtras={state.additionalServices.applyCommissionToExtras}
                   onUpdateTransfers={actions.updateTransfers}
                   onAddExtra={actions.addExtra}
                   onUpdateExtra={actions.updateExtra}
                   onRemoveExtra={actions.removeExtra}
+                  onToggleCommissionOnExtras={actions.toggleCommissionOnExtras}
                 />
               </CardContent>
             </Card>

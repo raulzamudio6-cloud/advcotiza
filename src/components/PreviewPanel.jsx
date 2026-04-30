@@ -11,7 +11,10 @@ export const PreviewPanel = ({ state, calculations, tripDuration }) => {
 
   const formatDate = (dateString) => {
     if (!dateString) return 'No especificado';
-    return new Date(dateString).toLocaleDateString('es-MX', {
+    // Parsear la fecha como local para evitar desfase UTC
+    const [year, month, day] = dateString.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    return date.toLocaleDateString('es-MX', {
       month: 'short',
       day: 'numeric',
       year: 'numeric'

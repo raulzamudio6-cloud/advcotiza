@@ -15,7 +15,10 @@ export const ExcelExport = ({ state, calculations }) => {
 
   const formatDate = (dateString) => {
     if (!dateString) return 'No especificado';
-    return new Date(dateString).toLocaleDateString('es-MX', {
+    // Parsear la fecha como local para evitar desfase UTC
+    const [year, month, day] = dateString.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    return date.toLocaleDateString('es-MX', {
       month: 'long',
       day: 'numeric',
       year: 'numeric'

@@ -98,7 +98,8 @@ const initialState = {
       extraDetail: '',
       extraPrice: 0
     },
-    extras: []
+    extras: [],
+    applyCommissionToExtras: true
   }
 };
 
@@ -118,6 +119,7 @@ const actionTypes = {
   ADD_EXTRA: 'ADD_EXTRA',
   UPDATE_EXTRA: 'UPDATE_EXTRA',
   REMOVE_EXTRA: 'REMOVE_EXTRA',
+  TOGGLE_COMMISSION_ON_EXTRAS: 'TOGGLE_COMMISSION_ON_EXTRAS',
   LOAD_QUOTATION: 'LOAD_QUOTATION',
   RESET_QUOTATION: 'RESET_QUOTATION'
 };
@@ -286,6 +288,15 @@ function quotationReducer(state, action) {
         }
       };
 
+    case actionTypes.TOGGLE_COMMISSION_ON_EXTRAS:
+      return {
+        ...state,
+        additionalServices: {
+          ...state.additionalServices,
+          applyCommissionToExtras: action.payload
+        }
+      };
+
     case actionTypes.LOAD_QUOTATION:
       return {
         ...initialState,
@@ -325,6 +336,7 @@ export function useTravelQuotation() {
     addExtra: () => dispatch({ type: actionTypes.ADD_EXTRA }),
     updateExtra: (id, updates) => dispatch({ type: actionTypes.UPDATE_EXTRA, payload: { id, updates } }),
     removeExtra: (id) => dispatch({ type: actionTypes.REMOVE_EXTRA, payload: { id } }),
+    toggleCommissionOnExtras: (apply) => dispatch({ type: actionTypes.TOGGLE_COMMISSION_ON_EXTRAS, payload: apply }),
     
     loadQuotation: (quotationData) => dispatch({ type: actionTypes.LOAD_QUOTATION, payload: quotationData }),
     
@@ -370,7 +382,22 @@ export function useTravelQuotation() {
     
     // Precios con comisión (para el cliente)
     commissionAmount: () => {
-      return calculations.netGrandTotal() * (state.commissionRate / 100);
+      const netFlight = calculations.netFlightTotal();
+      const netAccommodation = calculations.netAccommodationTotal();
+      const netTransfers = calculations.netTransfersTotal();
+      const netExtras = calculations.netExtrasTotal();
+      
+      // Calculate commission for flight, accommodation, and transfers
+      const commissionFromFlight = netFlight * (state.commissionRate / 100);
+      const commissionFromAccommodation = netAccommodation * (state.commissionRate / 100);
+      const commissionFromTransfers = netTransfers * (state.commissionRate / 100);
+      
+      // Calculate commission for extras only if flag is enabled
+      const commissionFromExtras = state.additionalServices.applyCommissionToExtras 
+        ? netExtras * (state.commissionRate / 100)
+        : 0;
+      
+      return commissionFromFlight + commissionFromAccommodation + commissionFromTransfers + commissionFromExtras;
     },
     
     flightTotal: () => {
@@ -386,11 +413,30 @@ export function useTravelQuotation() {
     },
     
     extrasTotal: () => {
-      return calculations.netExtrasTotal() * (1 + state.commissionRate / 100);
+      const netExtras = calculations.netExtrasTotal();
+      if (state.additionalServices.applyCommissionToExtras) {
+        return netExtras * (1 + state.commissionRate / 100);
+      }
+      return netExtras;
     },
     
     grandTotal: () => {
-      return calculations.netGrandTotal() * (1 + state.commissionRate / 100);
+      const netFlight = calculations.netFlightTotal();
+      const netAccommodation = calculations.netAccommodationTotal();
+      const netTransfers = calculations.netTransfersTotal();
+      const netExtras = calculations.netExtrasTotal();
+      
+      // Apply commission to flight, accommodation, and transfers
+      const commissionedFlight = netFlight * (1 + state.commissionRate / 100);
+      const commissionedAccommodation = netAccommodation * (1 + state.commissionRate / 100);
+      const commissionedTransfers = netTransfers * (1 + state.commissionRate / 100);
+      
+      // Apply commission to extras only if flag is enabled
+      const commissionedExtras = state.additionalServices.applyCommissionToExtras 
+        ? netExtras * (1 + state.commissionRate / 100)
+        : netExtras;
+      
+      return commissionedFlight + commissionedAccommodation + commissionedTransfers + commissionedExtras;
     }
   };
 

@@ -6,10 +6,12 @@ import { Card, CardHeader, CardContent } from './UI/Card';
 export const AdditionalServicesModule = ({ 
   transfers, 
   extras, 
+  applyCommissionToExtras,
   onUpdateTransfers, 
   onAddExtra, 
   onUpdateExtra, 
-  onRemoveExtra 
+  onRemoveExtra,
+  onToggleCommissionOnExtras
 }) => {
   return (
     <div className="space-y-6">
@@ -113,6 +115,32 @@ export const AdditionalServicesModule = ({
               <Plus className="w-4 h-4" />
               <span>Agregar Extra</span>
             </Button>
+          </div>
+          <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-primary-50 border border-primary-200 rounded-lg transition-all duration-200 hover:bg-primary-100">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center space-x-3">
+                <Checkbox
+                  label="Aplicar comisión a extras"
+                  checked={applyCommissionToExtras}
+                  onChange={(e) => onToggleCommissionOnExtras(e.target.checked)}
+                  className="font-medium text-primary-900"
+                />
+              </div>
+              <div className="mt-2 sm:mt-0 sm:ml-4">
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-colors ${
+                  applyCommissionToExtras 
+                    ? 'bg-green-100 text-green-800 border border-green-200' 
+                    : 'bg-gray-100 text-gray-600 border border-gray-200'
+                }`}>
+                  {applyCommissionToExtras ? 'Con comisión' : 'Sin comisión'}
+                </span>
+              </div>
+            </div>
+            <p className="text-xs sm:text-sm text-primary-700 mt-2 sm:mt-1 leading-relaxed">
+              {applyCommissionToExtras 
+                ? "La comisión de agencia se agregará al costo de los extras" 
+                : "Los extras se sumarán al precio final como costo neto"}
+            </p>
           </div>
         </CardHeader>
         <CardContent>

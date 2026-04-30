@@ -273,7 +273,9 @@ export const FlightModule = ({ flights, onUpdateFlight, onSelectFlight, passenge
   const FlightItineraryTable = ({ flight, isSelected, index }) => {
     const formatDateForTable = (dateString) => {
       if (!dateString) return '';
-      const date = new Date(dateString);
+      // Parsear la fecha como local para evitar desfase UTC
+      const [year, month, day] = dateString.split('-').map(Number);
+      const date = new Date(year, month - 1, day);
       return date.toLocaleDateString('es-MX', {
         day: '2-digit',
         month: '2-digit',
