@@ -17,6 +17,10 @@
     @apply bg-gray-200 hover:bg-gray-300 text-gray-900 font-medium py-2 px-4 rounded-lg transition-colors;
   }
   
+  .btn-danger {
+    @apply bg-secondary-600 hover:bg-secondary-700 text-white font-medium py-2 px-4 rounded-lg transition-colors;
+  }
+  
   .card {
     @apply bg-white rounded-lg shadow-md p-6;
   }
@@ -185,11 +189,23 @@
     color: #1f2937 !important; /* Gris oscuro para impresión */
   }
   
+  .text-secondary-600 {
+    color: #1f2937 !important; /* Gris oscuro para impresión */
+  }
+  
   .bg-primary-50 {
     background-color: #f9fafb !important; /* Gris muy claro para impresión */
   }
   
+  .bg-secondary-50 {
+    background-color: #f9fafb !important; /* Gris muy claro para impresión */
+  }
+  
   .border-primary-500 {
+    border-color: #9ca3af !important; /* Gris medio para impresión */
+  }
+  
+  .border-secondary-500 {
     border-color: #9ca3af !important; /* Gris medio para impresión */
   }
   

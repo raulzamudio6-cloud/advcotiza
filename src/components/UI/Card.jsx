@@ -72,6 +72,7 @@ export const HotelCard = ({
   onSelect, 
   onUpdate,
   className = '',
+  compact = false,
   ...props 
 }) => {
   const handleImageUrl = (index, value) => {
@@ -93,8 +94,10 @@ export const HotelCard = ({
       className={clsx(
         'cursor-pointer transition-all duration-200 border-2',
         isSelected ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-gray-300',
+        compact && 'p-4', // Compact styling when compact prop is true
         className
       )}
+      padding={compact ? 'sm' : 'md'}
       onClick={onSelect}
       {...props}
     >

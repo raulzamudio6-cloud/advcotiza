@@ -1,109 +1,117 @@
 import React from 'react';
 import clsx from 'clsx';
-import { Plane, RefreshCw, Save, History, FileText, CheckCircle, AlertCircle } from 'lucide-react';
+import { Briefcase, Save, History, FileText, CheckCircle, AlertCircle } from 'lucide-react';
 import { Button } from './UI/Input';
+import { useAgencyConfig } from '../contexts/AgencyConfigContext';
 
 export const Header = ({ 
-  onReset, 
   currentView, 
   onViewChange, 
   onSaveQuotation, 
   saveStatus 
 }) => {
+  const { agencyConfig, loading } = useAgencyConfig();
   return (
-    <header className="bg-primary-600 text-white shadow-lg">
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Navegación principal */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-3">
-            <Plane className="w-8 h-8" />
-            <div>
-              <h1 className="text-3xl font-bold">AdvCotiza</h1>
-              <p className="text-primary-100 text-sm">Sistema Profesional de Cotización de Viajes</p>
+    <header className="bg-primary-600 text-white shadow-xl">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Brand Section */}
+        <div className="py-4 sm:py-6">
+          <div className="flex items-center gap-4">
+            {/* Logo and Brand */}
+            <div className="flex items-center space-x-3 sm:space-x-4">
+              <div className="flex-shrink-0">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/10 rounded-lg flex items-center justify-center backdrop-blur-sm">
+                  <Briefcase className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+                </div>
+              </div>
+              <div className="min-w-0 flex-1">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white leading-tight">
+                  {loading ? 'Cargando...' : agencyConfig.agencyName}
+                </h1>
+                <p className="text-primary-100 text-xs sm:text-sm lg:text-base mt-1 hidden sm:block">
+                  Sistema Profesional de Cotización de Viajes
+                </p>
+              </div>
             </div>
           </div>
-          <Button
-            variant="outline"
-            onClick={onReset}
-            className="flex items-center space-x-2 bg-white/10 hover:bg-white/20 text-white border-white/30"
-          >
-            <RefreshCw className="w-4 h-4" />
-            <span>Reiniciar</span>
-          </Button>
         </div>
 
-        {/* Barra de navegación secundaria */}
-        <div className="flex items-center justify-between border-t border-primary-500 pt-4">
-          {/* Navegación entre vistas */}
-          <div className="flex space-x-2">
-            <Button
-              variant={currentView === 'form' ? 'default' : 'outline'}
-              onClick={() => onViewChange('form')}
-              className={clsx(
-                "flex items-center space-x-2",
-                currentView === 'form' 
-                  ? "bg-white text-primary-600 border-white" 
-                  : "bg-white/10 hover:bg-white/20 text-white border-white/30"
-              )}
-            >
-              <FileText className="w-4 h-4" />
-              <span>Nueva Cotización</span>
-            </Button>
-            
-            <Button
-              variant={currentView === 'history' ? 'default' : 'outline'}
-              onClick={() => onViewChange('history')}
-              className={clsx(
-                "flex items-center space-x-2",
-                currentView === 'history' 
-                  ? "bg-white text-primary-600 border-white" 
-                  : "bg-white/10 hover:bg-white/20 text-white border-white/30"
-              )}
-            >
-              <History className="w-4 h-4" />
-              <span>Mis Cotizaciones</span>
-            </Button>
-          </div>
+        {/* Navigation Section */}
+        <div className="border-t border-primary-500/30">
+          <div className="py-4">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+              {/* Navigation Tabs */}
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant={currentView === 'form' ? 'default' : 'outline'}
+                  onClick={() => onViewChange('form')}
+                  className={clsx(
+                    "flex items-center space-x-2 px-3 py-2 sm:px-4 transition-all duration-200",
+                    currentView === 'form' 
+                      ? "bg-white text-primary-600 border-white shadow-lg" 
+                      : "bg-white/10 hover:bg-white/20 text-white border-white/30 backdrop-blur-sm"
+                  )}
+                >
+                  <FileText className="w-4 h-4" />
+                  <span className="text-sm font-medium">Nueva Cotización</span>
+                </Button>
+                
+                <Button
+                  variant={currentView === 'history' ? 'default' : 'outline'}
+                  onClick={() => onViewChange('history')}
+                  className={clsx(
+                    "flex items-center space-x-2 px-3 py-2 sm:px-4 transition-all duration-200",
+                    currentView === 'history' 
+                      ? "bg-white text-primary-600 border-white shadow-lg" 
+                      : "bg-white/10 hover:bg-white/20 text-white border-white/30 backdrop-blur-sm"
+                  )}
+                >
+                  <History className="w-4 h-4" />
+                  <span className="text-sm font-medium">Mis Cotizaciones</span>
+                </Button>
+              </div>
 
-          {/* Botón de guardado y estado */}
-          {currentView === 'form' && (
-            <div className="flex items-center space-x-3">
-              {/* Estado de guardado */}
-              {saveStatus && (
-                <div className="flex items-center space-x-2 text-sm">
-                  {saveStatus.loading && (
-                    <div className="flex items-center space-x-1 text-yellow-200">
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>Guardando...</span>
+              {/* Save Section - Form View Only */}
+              {currentView === 'form' && (
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                  {/* Status Messages */}
+                  {saveStatus && (
+                    <div className="flex items-center space-x-2 text-sm">
+                      {saveStatus.loading && (
+                        <div className="flex items-center space-x-2 text-yellow-200 bg-yellow-500/10 px-3 py-1.5 rounded-lg">
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          <span className="font-medium">Guardando...</span>
+                        </div>
+                      )}
+                      {saveStatus.message && (
+                        <div className="flex items-center space-x-2 text-green-200 bg-green-500/10 px-3 py-1.5 rounded-lg">
+                          <CheckCircle className="w-4 h-4" />
+                          <span className="font-medium">{saveStatus.message}</span>
+                        </div>
+                      )}
+                      {saveStatus.error && (
+                        <div className="flex items-center space-x-2 text-red-200 bg-red-500/10 px-3 py-1.5 rounded-lg">
+                          <AlertCircle className="w-4 h-4" />
+                          <span className="font-medium">{saveStatus.error}</span>
+                        </div>
+                      )}
                     </div>
                   )}
-                  {saveStatus.message && (
-                    <div className="flex items-center space-x-1 text-green-200">
-                      <CheckCircle className="w-4 h-4" />
-                      <span>{saveStatus.message}</span>
-                    </div>
-                  )}
-                  {saveStatus.error && (
-                    <div className="flex items-center space-x-1 text-red-200">
-                      <AlertCircle className="w-4 h-4" />
-                      <span>{saveStatus.error}</span>
-                    </div>
-                  )}
+                  
+                  {/* Save Button */}
+                  <Button
+                    variant="default"
+                    onClick={onSaveQuotation}
+                    disabled={saveStatus?.loading}
+                    className="flex items-center space-x-2 bg-secondary-600 hover:bg-secondary-700 text-white border-secondary-700 shadow-lg transition-all duration-200"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span className="font-medium">Guardar Cotización</span>
+                  </Button>
                 </div>
               )}
-              
-              {/* Botón de guardar */}
-              <Button
-                variant="default"
-                onClick={onSaveQuotation}
-                disabled={saveStatus?.loading}
-                className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white border-green-700"
-              >
-                <Save className="w-4 h-4" />
-                <span>Guardar Cotización</span>
-              </Button>
             </div>
-          )}
+          </div>
         </div>
       </div>
     </header>

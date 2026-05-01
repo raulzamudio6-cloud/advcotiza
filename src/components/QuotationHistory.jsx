@@ -597,7 +597,12 @@ const calculateQuotationTotal = (quotation) => {
       const extrasTotal = additionalServices.extras.reduce((sum, extra) => 
         sum + (extra.price || 0), 0
       );
-      total += extrasTotal * (1 + commissionRate / 100);
+      // Aplicar comisión a extras solo si el flag está habilitado
+      if (additionalServices.applyCommissionToExtras) {
+        total += extrasTotal * (1 + commissionRate / 100);
+      } else {
+        total += extrasTotal;
+      }
     }
     
     return total;

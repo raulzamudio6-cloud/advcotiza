@@ -129,7 +129,7 @@ export const AdditionalServicesModule = ({
               <div className="mt-2 sm:mt-0 sm:ml-4">
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-colors ${
                   applyCommissionToExtras 
-                    ? 'bg-green-100 text-green-800 border border-green-200' 
+                    ? 'bg-secondary-100 text-secondary-800 border border-secondary-200' 
                     : 'bg-gray-100 text-gray-600 border border-gray-200'
                 }`}>
                   {applyCommissionToExtras ? 'Con comisión' : 'Sin comisión'}

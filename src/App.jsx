@@ -14,6 +14,7 @@ import { ExcelExport } from './components/ExcelExport';
 import { QuotationHistory } from './components/QuotationHistory';
 import { saveQuotation } from './services/storageService';
 import { validateQuotationData } from './utils/calculations';
+import { AgencyConfigProvider } from './contexts/AgencyConfigContext';
 
 function App() {
   const { state, actions, calculations } = useTravelQuotation();
@@ -133,22 +134,16 @@ function App() {
     }
   };
 
-  const resetForm = () => {
-    actions.resetQuotation();
-    setTripDuration({ days: 0, nights: 0 });
-    setCurrentQuotationId(null);
-    setSaveStatus(null);
-  };
-
+  
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header 
-        onReset={resetForm} 
-        currentView={currentView}
-        onViewChange={setCurrentView}
-        onSaveQuotation={handleSaveQuotation}
-        saveStatus={saveStatus}
-      />
+    <AgencyConfigProvider>
+      <div className="min-h-screen bg-gray-50">
+        <Header 
+          currentView={currentView}
+          onViewChange={setCurrentView}
+          onSaveQuotation={handleSaveQuotation}
+          saveStatus={saveStatus}
+        />
 
       {/* Main Content */}
       <main className="w-full px-4 py-8 min-h-screen">
@@ -371,7 +366,8 @@ function App() {
           </div>
         </div>
       </footer>
-    </div>
+      </div>
+    </AgencyConfigProvider>
   );
 }
 

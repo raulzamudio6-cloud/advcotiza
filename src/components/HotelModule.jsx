@@ -84,7 +84,7 @@ export const HotelModule = ({ accommodations, onUpdateAccommodation, onSelectAcc
                 isSelected={accommodation.selected}
                 onSelect={() => onSelectAccommodation(accommodation.id)}
                 onUpdate={(updates) => onUpdateAccommodation(accommodation.id, updates)}
-                compact={true} // Modo compacto para usar dentro del acordeón
+                compact="true" // Modo compacto para usar dentro del acordeón
               />
             </div>
           </Accordion>

@@ -1,10 +1,12 @@
 import React from 'react';
 import clsx from 'clsx';
-import { Eye, DollarSign, Plane, Hotel, Car, Ticket, Users, Calendar, Star, Percent } from 'lucide-react';
+import { Eye, DollarSign, Plane, Hotel, Car, Ticket, Users, Calendar, Star, Percent, Briefcase, Phone, Mail, Instagram, Facebook } from 'lucide-react';
 import { Card, CardHeader, CardContent } from './UI/Card';
 import { formatMXN } from '../utils/formatters';
+import { useAgencyConfig } from '../contexts/AgencyConfigContext';
 
 export const PreviewPanel = ({ state, calculations, tripDuration }) => {
+  const { agencyConfig, loading } = useAgencyConfig();
   const selectedFlight = calculations.selectedFlight;
   const selectedAccommodation = calculations.selectedAccommodation;
   const { passengers, additionalServices } = state;
@@ -27,6 +29,59 @@ export const PreviewPanel = ({ state, calculations, tripDuration }) => {
 
   return (
     <div className="space-y-4">
+      {/* Agency Header */}
+      {!loading && (
+        <div className="mb-6 bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+          <div className="flex items-start space-x-4">
+            {/* Logo */}
+            <div className="flex-shrink-0">
+              {agencyConfig.logoUrl ? (
+                <img 
+                  src={agencyConfig.logoUrl} 
+                  alt={agencyConfig.agencyName}
+                  className="w-16 h-16 object-contain rounded-lg border border-gray-200"
+                />
+              ) : (
+                <div className="w-16 h-16 bg-primary-100 rounded-lg flex items-center justify-center">
+                  <Briefcase className="w-8 h-8 text-primary-600" />
+                </div>
+              )}
+            </div>
+            
+            {/* Agency Info */}
+            <div className="flex-1 min-w-0">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                {agencyConfig.agencyName}
+              </h2>
+              
+              {/* Contact Information */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                <div className="flex items-center space-x-2 text-sm text-gray-600">
+                  <Phone className="w-4 h-4 text-primary-500" />
+                  <span>{agencyConfig.contact.phone}</span>
+                </div>
+                <div className="flex items-center space-x-2 text-sm text-gray-600">
+                  <Mail className="w-4 h-4 text-primary-500" />
+                  <span>{agencyConfig.contact.email}</span>
+                </div>
+              </div>
+              
+              {/* Social Media */}
+              <div className="flex items-center space-x-4 text-sm">
+                <div className="flex items-center space-x-1 text-gray-600">
+                  <Instagram className="w-4 h-4 text-pink-500" />
+                  <span>{agencyConfig.socialMedia.instagram}</span>
+                </div>
+                <div className="flex items-center space-x-1 text-gray-600">
+                  <Facebook className="w-4 h-4 text-blue-600" />
+                  <span>{agencyConfig.socialMedia.facebook}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Título Dinámico */}
       {state.quotationTitle && (
         <div className="mb-6">
@@ -103,8 +158,8 @@ export const PreviewPanel = ({ state, calculations, tripDuration }) => {
                 <p className="text-sm"><span className="font-medium">Aerolínea:</span> {selectedFlight.airline || 'No especificado'}</p>
                 
                 {/* Tramo de Ida */}
-                <div className="border-l-4 border-blue-500 pl-3">
-                  <p className="text-sm font-semibold text-blue-700">TRAMO DE IDA</p>
+                <div className="border-l-4 border-primary-500 pl-3">
+                  <p className="text-sm font-semibold text-primary-700">TRAMO DE IDA</p>
                   <p className="text-sm"><span className="font-medium">Fecha:</span> {formatDate(selectedFlight.outbound.date)}</p>
                   {selectedFlight.outbound.departureTime && selectedFlight.outbound.arrivalTime && (
                     <p className="text-sm"><span className="font-medium">Horario:</span> {selectedFlight.outbound.departureTime} - {selectedFlight.outbound.arrivalTime}</p>
@@ -118,8 +173,8 @@ export const PreviewPanel = ({ state, calculations, tripDuration }) => {
                 </div>
                 
                 {/* Tramo de Regreso */}
-                <div className="border-l-4 border-red-500 pl-3">
-                  <p className="text-sm font-semibold text-red-700">TRAMO DE REGRESO</p>
+                <div className="border-l-4 border-secondary-500 pl-3">
+                  <p className="text-sm font-semibold text-secondary-700">TRAMO DE REGRESO</p>
                   <p className="text-sm"><span className="font-medium">Fecha:</span> {formatDate(selectedFlight.return.date)}</p>
                   {selectedFlight.return.departureTime && selectedFlight.return.arrivalTime && (
                     <p className="text-sm"><span className="font-medium">Horario:</span> {selectedFlight.return.departureTime} - {selectedFlight.return.arrivalTime}</p>
@@ -259,6 +314,26 @@ export const PreviewPanel = ({ state, calculations, tripDuration }) => {
             </div>
           </div>
         </div>
+
+        {/* Agency Policies */}
+        {!loading && agencyConfig.policies && agencyConfig.policies.length > 0 && (
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
+              <Briefcase className="w-4 h-4 mr-2 text-primary-600" />
+              Políticas de la Agencia
+            </h4>
+            <div className="bg-gray-50 rounded-lg p-4">
+              <ul className="space-y-2">
+                {agencyConfig.policies.map((policy, index) => (
+                  <li key={index} className="text-sm text-gray-600 flex items-start">
+                    <span className="text-primary-500 mr-2 mt-1">•</span>
+                    <span>{policy}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
       </CardContent>
     </div>
   );

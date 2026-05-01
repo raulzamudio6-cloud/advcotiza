@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import clsx from 'clsx';
 import { Plane, Calendar, DollarSign, Info, MapPin } from 'lucide-react';
 import { Input, Checkbox, Button } from './UI/Input';
@@ -6,12 +6,29 @@ import { Card, CardHeader, CardContent } from './UI/Card';
 import { Accordion, AccordionGroup } from './UI/Accordion';
 import { createCurrencyBlurHandler, createCurrencyChangeHandler, formatInputValue } from '../utils/currencyUtils';
 
+// Función para verificar si un vuelo tiene datos significativos (movida fuera del componente)
+const flightHasData = (flight) => {
+  return (
+    flight.airline ||
+    flight.price > 0 ||
+    flight.route.origin ||
+    flight.route.destination ||
+    flight.outbound.date ||
+    flight.outbound.departureTime ||
+    flight.outbound.arrivalTime ||
+    flight.return.date ||
+    flight.return.departureTime ||
+    flight.return.arrivalTime ||
+    flight.luggageDetail
+  );
+};
+
 export const FlightModule = ({ flights, onUpdateFlight, onSelectFlight, passengers, onDurationChange }) => {
   const [dateErrors, setDateErrors] = useState({});
   const [expandedFlights, setExpandedFlights] = useState({});
 
-  // Inicializar estado de acordeones basado en datos existentes
-  useEffect(() => {
+  // Memoizar la inicialización de acordeones para evitar renders innecesarios
+  const initializeExpandedFlights = useCallback(() => {
     const initialExpanded = {};
     flights.forEach((flight, index) => {
       // Solo la primera opción expandida por defecto si no hay datos
@@ -22,16 +39,31 @@ export const FlightModule = ({ flights, onUpdateFlight, onSelectFlight, passenge
         initialExpanded[flight.id] = flightHasData(flight);
       }
     });
-    setExpandedFlights(initialExpanded);
+    return initialExpanded;
   }, [flights]);
 
-  // Función para manejar cambio de estado de acordeón
-  const handleAccordionToggle = (flightId, isExpanded) => {
-    setExpandedFlights(prev => ({
-      ...prev,
-      [flightId]: isExpanded
-    }));
-  };
+  // Inicializar estado de acordeones basado en datos existentes
+  useEffect(() => {
+    const newExpanded = initializeExpandedFlights();
+    // Solo actualizar si el estado realmente cambió
+    setExpandedFlights(prev => {
+      const hasChanged = JSON.stringify(prev) !== JSON.stringify(newExpanded);
+      return hasChanged ? newExpanded : prev;
+    });
+  }, [initializeExpandedFlights]);
+
+  // Función para manejar cambio de estado de acordeón (memoizada)
+  const handleAccordionToggle = useCallback((flightId, isExpanded) => {
+    setExpandedFlights(prev => {
+      if (prev[flightId] === isExpanded) {
+        return prev; // No actualizar si no hay cambio
+      }
+      return {
+        ...prev,
+        [flightId]: isExpanded
+      };
+    });
+  }, []);
 
   // Función para calcular duración del viaje con manejo robusto
   const calculateDuration = (departureTime, arrivalTime) => {
@@ -87,23 +119,7 @@ export const FlightModule = ({ flights, onUpdateFlight, onSelectFlight, passenge
     }
   };
 
-  // Función para verificar si un vuelo tiene datos significativos
-  const flightHasData = (flight) => {
-    return (
-      flight.airline ||
-      flight.price > 0 ||
-      flight.route.origin ||
-      flight.route.destination ||
-      flight.outbound.date ||
-      flight.outbound.departureTime ||
-      flight.outbound.arrivalTime ||
-      flight.return.date ||
-      flight.return.departureTime ||
-      flight.return.arrivalTime ||
-      flight.luggageDetail
-    );
-  };
-
+  
   // Función para calcular días y noches del viaje completo
   const calculateTripDuration = () => {
     const selectedFlight = flights.find(f => f.selected);
@@ -140,21 +156,26 @@ export const FlightModule = ({ flights, onUpdateFlight, onSelectFlight, passenge
     };
   };
 
+  // Memoizar calculateTripDuration para evitar recreación en cada render
+  const memoizedCalculateTripDuration = useCallback(() => {
+    return calculateTripDuration();
+  }, [flights]);
+
   // Efecto para notificar cambios en la duración del viaje
   useEffect(() => {
     if (onDurationChange) {
-      const duration = calculateTripDuration();
+      const duration = memoizedCalculateTripDuration();
       onDurationChange(duration);
     }
-  }, [flights.map(f => `${f.outbound.date}-${f.return.date}`).join(','), onDurationChange]);
+  }, [memoizedCalculateTripDuration, onDurationChange]);
 
-  const handleFlightUpdate = (flightId, field, value) => {
+  const handleFlightUpdate = useCallback((flightId, field, value) => {
     onUpdateFlight(flightId, { [field]: value });
     
     // Inteligencia de fechas: si cambia la fecha de salida de ida, actualizar regreso automáticamente
     if (field === 'outbound.date' && value) {
-      const departureDate = new Date(value);
-      const nextDay = new Date(departureDate);
+      const outboundDate = new Date(value);
+      const nextDay = new Date(outboundDate);
       nextDay.setDate(nextDay.getDate() + 1);
       
       const returnDateStr = nextDay.toISOString().split('T')[0];
@@ -164,24 +185,24 @@ export const FlightModule = ({ flights, onUpdateFlight, onSelectFlight, passenge
       setDateErrors(prev => ({ ...prev, [flightId]: null }));
     }
     
-    // Si se actualiza la ruta, propagar a los tramos
+    // Inteligencia de rutas: si cambia origen o destino, actualizar ambos tramos
     if (field === 'route.origin' || field === 'route.destination') {
       const flight = flights.find(f => f.id === flightId);
       if (flight) {
-        const origin = field === 'route.origin' ? value : flight.route.origin;
-        const destination = field === 'route.destination' ? value : flight.route.destination;
+        const origin = field === 'route.origin' ? value : flight.route.destination;
+        const destination = field === 'route.destination' ? value : flight.route.origin;
         
         // Actualizar tramos con la nueva ruta
         onUpdateFlight(flightId, { 
           'outbound.origin': origin,
           'outbound.destination': destination,
           'return.origin': destination, // Invertido para el regreso
-          'return.destination': origin   // Invertido para el regreso
+          'return.destination': origin  // Invertido para el regreso
         });
       }
     }
-
-    // Calcular duración automáticamente si cambian las horas
+    
+    // Calcular duración automáticamente si cambian horas
     if (field === 'outbound.departureTime' || field === 'outbound.arrivalTime') {
       const flight = flights.find(f => f.id === flightId);
       if (flight && flight.outbound.departureTime && flight.outbound.arrivalTime) {
@@ -189,7 +210,7 @@ export const FlightModule = ({ flights, onUpdateFlight, onSelectFlight, passenge
         onUpdateFlight(flightId, { 'outbound.duration': duration });
       }
     }
-
+    
     if (field === 'return.departureTime' || field === 'return.arrivalTime') {
       const flight = flights.find(f => f.id === flightId);
       if (flight && flight.return.departureTime && flight.return.arrivalTime) {
@@ -197,16 +218,16 @@ export const FlightModule = ({ flights, onUpdateFlight, onSelectFlight, passenge
         onUpdateFlight(flightId, { 'return.duration': duration });
       }
     }
-  };
+  }, [flights, onUpdateFlight, calculateDuration]);
 
-  const formatDate = (dateString) => {
+  const formatDate = useCallback((dateString) => {
     if (!dateString) return '';
     return new Date(dateString).toLocaleDateString('es-MX', {
       month: 'short',
       day: 'numeric',
       year: 'numeric'
     });
-  };
+  }, []);
 
   const validateDates = (flightId) => {
     const flight = flights.find(f => f.id === flightId);
