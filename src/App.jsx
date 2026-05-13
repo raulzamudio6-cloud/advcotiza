@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTravelQuotation } from './hooks/useTravelQuotation';
 import { Input, Button } from './components/UI/Input';
 import { Card, CardHeader, CardContent } from './components/UI/Card';
@@ -27,9 +27,9 @@ function App() {
     actions.setClientInfo({ [field]: value });
   };
 
-  const handleDurationChange = (duration) => {
+  const handleDurationChange = useCallback((duration) => {
     setTripDuration(duration);
-  };
+  }, []);
 
   const handleSaveQuotation = async () => {
     try {
