@@ -8,7 +8,8 @@ export const Header = ({
   currentView, 
   onViewChange, 
   onSaveQuotation, 
-  saveStatus 
+  saveStatus,
+  onResetQuotation
 }) => {
   const { agencyConfig, loading } = useAgencyConfig();
   return (
@@ -44,7 +45,12 @@ export const Header = ({
               <div className="flex flex-wrap gap-2">
                 <Button
                   variant={currentView === 'form' ? 'default' : 'outline'}
-                  onClick={() => onViewChange('form')}
+                  onClick={() => {
+                    onViewChange('form');
+                    if (onResetQuotation) {
+                      onResetQuotation();
+                    }
+                  }}
                   className={clsx(
                     "flex items-center space-x-2 px-3 py-2 sm:px-4 transition-all duration-200",
                     currentView === 'form' 

@@ -143,6 +143,14 @@ function App() {
           onViewChange={setCurrentView}
           onSaveQuotation={handleSaveQuotation}
           saveStatus={saveStatus}
+          onResetQuotation={() => {
+            console.log('Reset button clicked - resetting quotation');
+            console.log('State before reset:', state);
+            actions.resetQuotation();
+            setCurrentQuotationId(null);
+            setTripDuration({ days: 0, nights: 0 });
+            console.log('Reset completed');
+          }}
         />
 
       {/* Main Content */}

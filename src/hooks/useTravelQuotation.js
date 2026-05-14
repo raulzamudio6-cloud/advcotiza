@@ -304,7 +304,108 @@ function quotationReducer(state, action) {
       };
 
     case actionTypes.RESET_QUOTATION:
-      return initialState;
+      console.log('Reducer: RESET_QUOTATION dispatched, returning fresh initialState');
+      return {
+        quotationTitle: '',
+        clientInfo: {
+          name: '',
+          email: '',
+          phone: ''
+        },
+        commissionRate: 20,
+        passengers: [],
+        flights: [
+          {
+            id: 1,
+            airline: '',
+            price: 0,
+            route: {
+              origin: '',
+              destination: ''
+            },
+            outbound: {
+              date: '',
+              departureTime: '',
+              arrivalTime: '',
+              duration: '',
+              stops: ''
+            },
+            return: {
+              date: '',
+              departureTime: '',
+              arrivalTime: '',
+              duration: '',
+              stops: ''
+            },
+            luggageDetail: '',
+            selected: false
+          },
+          {
+            id: 2,
+            airline: '',
+            price: 0,
+            route: {
+              origin: '',
+              destination: ''
+            },
+            outbound: {
+              date: '',
+              departureTime: '',
+              arrivalTime: '',
+              duration: '',
+              stops: ''
+            },
+            return: {
+              date: '',
+              departureTime: '',
+              arrivalTime: '',
+              duration: '',
+              stops: ''
+            },
+            luggageDetail: '',
+            selected: false
+          }
+        ],
+        accommodations: [
+          {
+            id: 1,
+            name: '',
+            category: 3,
+            totalPrice: 0,
+            description: '',
+            selected: false,
+            images: ['', '', '']
+          },
+          {
+            id: 2,
+            name: '',
+            category: 3,
+            totalPrice: 0,
+            description: '',
+            selected: false,
+            images: ['', '', '']
+          },
+          {
+            id: 3,
+            name: '',
+            category: 3,
+            totalPrice: 0,
+            description: '',
+            selected: false,
+            images: ['', '', '']
+          }
+        ],
+        additionalServices: {
+          transfers: {
+            standard: false,
+            standardPrice: 0,
+            extraDetail: '',
+            extraPrice: 0
+          },
+          extras: [],
+          applyCommissionToExtras: true
+        }
+      };
 
     default:
       return state;

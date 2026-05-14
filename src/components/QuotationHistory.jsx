@@ -370,7 +370,7 @@ export const QuotationHistory = ({ onLoadQuotation, currentQuotationId }) => {
                           <FileText className="w-4 h-4 text-gray-400 mr-2" />
                           <div>
                             <div className="text-sm font-medium text-gray-900">
-                              {quotation.title}
+                              {quotation.quotationTitle}
                             </div>
                             {quotation.id === currentQuotationId && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
@@ -505,7 +505,7 @@ export const QuotationHistory = ({ onLoadQuotation, currentQuotationId }) => {
               
               <div className="space-y-4">
                 <div>
-                  <h4 className="font-medium text-gray-800">{selectedQuotation.title}</h4>
+                  <h4 className="font-medium text-gray-800">{selectedQuotation.quotationTitle}</h4>
                   <p className="text-sm text-gray-600">
                     Cliente: {selectedQuotation.clientInfo.name}
                   </p>
