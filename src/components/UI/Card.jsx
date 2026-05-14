@@ -1,5 +1,6 @@
 import React from 'react';
 import clsx from 'clsx';
+import { AlertCircle } from 'lucide-react';
 
 export const Card = ({ 
   children, 
@@ -73,6 +74,7 @@ export const HotelCard = ({
   onUpdate,
   className = '',
   compact = false,
+  validationErrors = {},
   ...props 
 }) => {
   const handleImageUrl = (index, value) => {
@@ -103,8 +105,13 @@ export const HotelCard = ({
     >
       <CardContent>
         {/* 1. Nombre del Hotel */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Nombre del Hotel</label>
+        <div className="mb-5">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Nombre del Hotel
+            {validationErrors.name && (
+              <AlertCircle className="w-4 h-4 inline ml-1 text-red-500" />
+            )}
+          </label>
           <input
             type="text"
             value={hotel.name}
@@ -113,13 +120,19 @@ export const HotelCard = ({
               onUpdate({ name: e.target.value });
             }}
             placeholder="Ingrese el nombre del hotel"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className={clsx(
+              "w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all",
+              validationErrors.name ? "border-red-500 focus:ring-red-500 bg-red-50" : "border-gray-300 hover:border-gray-400"
+            )}
             onClick={(e) => e.stopPropagation()}
           />
+          {validationErrors.name && (
+            <p className="text-xs text-red-600 mt-1">{validationErrors.name}</p>
+          )}
         </div>
 
         {/* 2. Estrellas */}
-        <div className="mb-4">
+        <div className="mb-5">
           <label className="block text-sm font-medium text-gray-700 mb-2">Categoría (Estrellas)</label>
           <div className="flex items-center space-x-2">
             {[...Array(5)].map((_, i) => (
@@ -130,11 +143,11 @@ export const HotelCard = ({
                   e.stopPropagation();
                   onUpdate({ category: i + 1 });
                 }}
-                className="p-1"
+                className="p-1 hover:scale-110 transition-transform"
               >
                 <svg
                   className={clsx(
-                    'w-5 h-5',
+                    'w-6 h-6',
                     i < hotel.category ? 'text-yellow-400 fill-current' : 'text-gray-300'
                   )}
                   fill="currentColor"
@@ -149,7 +162,7 @@ export const HotelCard = ({
         </div>
 
         {/* 3. Descripción del Hotel */}
-        <div className="mb-4">
+        <div className="mb-5">
           <label className="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
           <textarea
             value={hotel.description}
@@ -158,14 +171,14 @@ export const HotelCard = ({
               onUpdate({ description: e.target.value });
             }}
             placeholder="Descripción del hotel, servicios, ubicación..."
-            rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+            rows={4}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none transition-all hover:border-gray-400"
             onClick={(e) => e.stopPropagation()}
           />
         </div>
 
         {/* 4. Galería de Imágenes (ahora debajo del texto) */}
-        <div className="mb-4">
+        <div className="mb-5">
           <label className="block text-sm font-medium text-gray-700 mb-2">Galería de Imágenes</label>
           {hasAnyImage ? (
             <div className="flex justify-center gap-3">
@@ -202,7 +215,7 @@ export const HotelCard = ({
         </div>
 
         {/* 5-7. Configuración de Imágenes */}
-        <div className="mb-4 space-y-3 border border-gray-200 rounded-lg p-4 bg-gray-50">
+        <div className="mb-5 space-y-3 border border-gray-200 rounded-xl p-5 bg-gray-50">
           <label className="block text-sm font-semibold text-gray-700 mb-3">Configurar URLs de Imágenes</label>
           {[0, 1, 2].map((index) => (
             <div key={index} className="space-y-1">
@@ -244,6 +257,9 @@ export const HotelCard = ({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               Precio Total (Costo Neto)
+              {validationErrors.totalPrice && (
+                <AlertCircle className="w-4 h-4 inline ml-1 text-red-500" />
+              )}
             </label>
             <input
               type="number"
@@ -255,9 +271,15 @@ export const HotelCard = ({
               placeholder="0.00"
               min="0"
               step="0.01"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className={clsx(
+                "w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all",
+                validationErrors.totalPrice ? "border-red-500 focus:ring-red-500 bg-red-50" : "border-gray-300 hover:border-gray-400"
+              )}
               onClick={(e) => e.stopPropagation()}
             />
+            {validationErrors.totalPrice && (
+              <p className="text-xs text-red-600 mt-1">{validationErrors.totalPrice}</p>
+            )}
           </div>
           
           {isSelected && (
@@ -271,9 +293,9 @@ export const HotelCard = ({
 
         {/* Precio Calculado */}
         {hotel.totalPrice > 0 && (
-          <div className="mt-3 pt-3 border-t border-gray-200">
-            <div className="flex justify-between items-center text-base font-semibold">
-              <span className="text-gray-600">Precio Neto:</span>
+          <div className="mt-4 pt-4 border-t border-gray-200 bg-gray-50 rounded-lg p-4">
+            <div className="flex justify-between items-center text-lg font-bold">
+              <span className="text-gray-700">Precio Neto:</span>
               <span className="text-primary-600">${hotel.totalPrice.toFixed(2)}</span>
             </div>
           </div>

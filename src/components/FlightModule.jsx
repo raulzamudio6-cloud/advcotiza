@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import clsx from 'clsx';
-import { Plane, Calendar, DollarSign, Info, MapPin } from 'lucide-react';
+import { Plane, Calendar, DollarSign, Info, MapPin, Copy, Trash2, AlertCircle } from 'lucide-react';
 import { Input, Checkbox, Button } from './UI/Input';
 import { Card, CardHeader, CardContent } from './UI/Card';
 import { Accordion, AccordionGroup } from './UI/Accordion';
@@ -23,8 +23,10 @@ const flightHasData = (flight) => {
   );
 };
 
-export const FlightModule = ({ flights, onUpdateFlight, onSelectFlight, passengers, onDurationChange }) => {
+export const FlightModule = ({ flights, onUpdateFlight, onSelectFlight, passengers, onDurationChange, onDuplicateFlight, onDeleteFlight }) => {
   const [dateErrors, setDateErrors] = useState({});
+  const [validationErrors, setValidationErrors] = useState({});
+  const [deleteConfirmation, setDeleteConfirmation] = useState(null);
   // Initialize with first flight expanded to avoid useEffect
   const [expandedFlights, setExpandedFlights] = useState(() => {
     if (flights && flights.length > 0) {
@@ -216,6 +218,43 @@ export const FlightModule = ({ flights, onUpdateFlight, onSelectFlight, passenge
     return false;
   }, []);
 
+  // Validate required fields for a flight
+  const validateFlight = useCallback((flight) => {
+    const errors = {};
+    
+    if (!flight.airline) errors.airline = 'Aerolínea requerida';
+    if (!flight.route.origin) errors['route.origin'] = 'Origen requerido';
+    if (!flight.route.destination) errors['route.destination'] = 'Destino requerido';
+    if (!flight.outbound.date) errors['outbound.date'] = 'Fecha de salida requerida';
+    if (!flight.return.date) errors['return.date'] = 'Fecha de regreso requerida';
+    if (!flight.price || flight.price <= 0) errors.price = 'Precio requerido';
+    
+    return errors;
+  }, []);
+
+  // Handle delete with confirmation
+  const handleDeleteClick = (flightId) => {
+    setDeleteConfirmation(flightId);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (deleteConfirmation && onDeleteFlight) {
+      onDeleteFlight(deleteConfirmation);
+      setDeleteConfirmation(null);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteConfirmation(null);
+  };
+
+  // Handle duplicate
+  const handleDuplicate = (flightId) => {
+    if (onDuplicateFlight) {
+      onDuplicateFlight(flightId);
+    }
+  };
+
   // Componente de tabla de itinerario
   const FlightItineraryTable = ({ flight, isSelected, index }) => {
     const formatDateForTable = (dateString) => {
@@ -334,18 +373,41 @@ return (
               key={flight.id}
               id={flight.id}
               title={
-                <div className="flex items-center space-x-3">
-                  <span className="font-medium">Opción {index + 1}</span>
-                  {flight.selected && (
-                    <div className="bg-primary-500 text-white rounded-full p-1">
-                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                  )}
-                  {flight.airline && (
-                    <span className="text-sm text-gray-600">{flight.airline}</span>
-                  )}
+                <div className="flex items-center justify-between w-full pr-4">
+                  <div className="flex items-center space-x-3">
+                    <span className="font-medium">Opción {index + 1}</span>
+                    {flight.selected && (
+                      <div className="bg-primary-500 text-white rounded-full p-1">
+                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    )}
+                    {flight.airline && (
+                      <span className="text-sm text-gray-600">{flight.airline}</span>
+                    )}
+                  </div>
+                  <div className="flex items-center space-x-2" onClick={(e) => e.stopPropagation()}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDuplicate(flight.id)}
+                      className="p-2"
+                      title="Duplicar opción"
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={() => handleDeleteClick(flight.id)}
+                      className="p-2"
+                      title="Eliminar opción"
+                      disabled={flights.length <= 1}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               }
               defaultExpanded={index === 0} // Solo la primera opción expandida por defecto
@@ -392,17 +454,20 @@ return (
               </div>
 
               {/* Formulario de edición */}
-              <div className="space-y-4 border-t pt-4" onClick={(e) => e.stopPropagation()}>
+              <div className="space-y-6 border-t pt-6" onClick={(e) => e.stopPropagation()}>
                   {/* RUTA PRINCIPAL */}
-                  <div className="bg-gradient-to-r from-blue-50 to-red-50 p-4 rounded-lg border border-blue-200">
-                    <h5 className="font-semibold text-gray-800 mb-3 flex items-center">
-                      <MapPin className="w-4 h-4 mr-2 text-blue-600" />
+                  <div className="bg-gradient-to-r from-blue-50 to-red-50 p-5 rounded-xl border border-blue-200 shadow-sm">
+                    <h5 className="font-semibold text-gray-800 mb-4 flex items-center text-base">
+                      <MapPin className="w-5 h-5 mr-2 text-blue-600" />
                       Configurar Ruta
                     </h5>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Origen
+                          {validationErrors[flight.id]?.['route.origin'] && (
+                            <AlertCircle className="w-4 h-4 inline ml-1 text-red-500" />
+                          )}
                         </label>
                         <input
                           type="text"
@@ -410,15 +475,28 @@ return (
                           onChange={(e) => {
                             e.stopPropagation();
                             handleFlightUpdate(flight.id, 'route.origin', e.target.value);
+                            setValidationErrors(prev => ({
+                              ...prev,
+                              [flight.id]: { ...prev[flight.id], 'route.origin': null }
+                            }));
                           }}
                           placeholder="Ej: QRO"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                          className={clsx(
+                            "w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent",
+                            validationErrors[flight.id]?.['route.origin'] ? "border-red-500 focus:ring-red-500" : "border-gray-300"
+                          )}
                           onClick={(e) => e.stopPropagation()}
                         />
+                        {validationErrors[flight.id]?.['route.origin'] && (
+                          <p className="text-xs text-red-600 mt-1">{validationErrors[flight.id]['route.origin']}</p>
+                        )}
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Destino
+                          {validationErrors[flight.id]?.['route.destination'] && (
+                            <AlertCircle className="w-4 h-4 inline ml-1 text-red-500" />
+                          )}
                         </label>
                         <input
                           type="text"
@@ -426,11 +504,21 @@ return (
                           onChange={(e) => {
                             e.stopPropagation();
                             handleFlightUpdate(flight.id, 'route.destination', e.target.value);
+                            setValidationErrors(prev => ({
+                              ...prev,
+                              [flight.id]: { ...prev[flight.id], 'route.destination': null }
+                            }));
                           }}
                           placeholder="Ej: MCO"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                          className={clsx(
+                            "w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent",
+                            validationErrors[flight.id]?.['route.destination'] ? "border-red-500 focus:ring-red-500" : "border-gray-300"
+                          )}
                           onClick={(e) => e.stopPropagation()}
                         />
+                        {validationErrors[flight.id]?.['route.destination'] && (
+                          <p className="text-xs text-red-600 mt-1">{validationErrors[flight.id]['route.destination']}</p>
+                        )}
                       </div>
                     </div>
                     {flight.route.origin && flight.route.destination && (
@@ -441,31 +529,54 @@ return (
                       </div>
                     )}
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Aerolínea</label>
-                    <input
-                      type="text"
-                      value={flight.airline}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        handleFlightUpdate(flight.id, 'airline', e.target.value);
-                      }}
-                      placeholder="Ingrese el nombre de la aerolínea"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                      onClick={(e) => e.stopPropagation()}
-                    />
+                  {/* Información General */}
+                  <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                    <h5 className="font-semibold text-gray-800 mb-4 flex items-center text-base">
+                      <Plane className="w-5 h-5 mr-2 text-primary-600" />
+                      Información del Vuelo
+                    </h5>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Aerolínea
+                        {validationErrors[flight.id]?.airline && (
+                          <AlertCircle className="w-4 h-4 inline ml-1 text-red-500" />
+                        )}
+                      </label>
+                      <input
+                        type="text"
+                        value={flight.airline}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleFlightUpdate(flight.id, 'airline', e.target.value);
+                          setValidationErrors(prev => ({
+                            ...prev,
+                            [flight.id]: { ...prev[flight.id], airline: null }
+                          }));
+                        }}
+                        placeholder="Ingrese el nombre de la aerolínea"
+                        className={clsx(
+                          "w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all",
+                          validationErrors[flight.id]?.airline ? "border-red-500 focus:ring-red-500 bg-red-50" : "border-gray-300 hover:border-gray-400"
+                        )}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      {validationErrors[flight.id]?.airline && (
+                        <p className="text-xs text-red-600 mt-1">{validationErrors[flight.id].airline}</p>
+                      )}
+                    </div>
                   </div>
 
                   {/* TRAMO DE IDA */}
-                  <div className="border-l-4 border-blue-500 pl-4">
+                  <div className="bg-blue-50 p-5 rounded-xl border-l-4 border-blue-500 shadow-sm">
                   
                     
-                    <div className="text-sm font-medium text-blue-600 mb-3 text-center">
+                    <h5 className="text-base font-semibold text-blue-700 mb-4 flex items-center justify-center">
+                      <Plane className="w-5 h-5 mr-2" />
                       {flight.outbound.origin && flight.outbound.destination ? 
                         `${flight.outbound.origin} → ${flight.outbound.destination}` : 
                         'ITINERARIO DE IDA'
                       }
-                    </div>
+                    </h5>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
@@ -576,15 +687,16 @@ return (
                                       </div>
 
                   {/* TRAMO DE REGRESO */}
-                  <div className="border-l-4 border-red-500 pl-4">
+                  <div className="bg-red-50 p-5 rounded-xl border-l-4 border-red-500 shadow-sm">
                   
                     
-                    <div className="text-sm font-medium text-red-600 mb-3 text-center">
+                    <h5 className="text-base font-semibold text-red-700 mb-4 flex items-center justify-center">
+                      <Plane className="w-5 h-5 mr-2" />
                       {flight.return.origin && flight.return.destination ? 
                         `${flight.return.origin} → ${flight.return.destination}` : 
                         'ITINERARIO DE REGRESO'
                       }
-                    </div>
+                    </h5>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
@@ -718,82 +830,129 @@ return (
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      <DollarSign className="w-4 h-4 inline mr-1" />
-                      Precio por Pasajero (Costo Neto)
-                    </label>
-                    <input
-                      type="text"
-                      value={formatInputValue(flight.price)}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        const value = e.target.value;
-                        // Permitir entrada libre durante la escritura
-                        handleFlightUpdate(flight.id, 'price', value === '' ? 0 : parseFloat(value) || 0);
-                      }}
-                      onBlur={(e) => {
-                        e.stopPropagation();
-                        const cleanedValue = parseFloat(e.target.value) || 0;
-                        const formattedValue = formatInputValue(cleanedValue);
-                        
-                        // Actualizar el estado con el valor numérico limpio
-                        handleFlightUpdate(flight.id, 'price', cleanedValue);
-                        
-                        // Actualizar el input con el valor formateado
-                        e.target.value = formattedValue;
-                      }}
-                      placeholder="0.00"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent cursor-text"
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Ingresa el costo neto por pasajero (sin comisión)
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      <Info className="w-4 h-4 inline mr-1" />
-                      Detalle de Equipaje
-                    </label>
-                    <textarea
-                      value={flight.luggageDetail}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        handleFlightUpdate(flight.id, 'luggageDetail', e.target.value);
-                      }}
-                      placeholder="Ej: Maleta de 25kg + Objeto personal, Equipaje de mano, etc."
-                      rows={2}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Describa qué incluye el plan de equipaje para cada pasajero
-                    </p>
-                  </div>
-
-                  {flight.price > 0 && (
-                    <div className="pt-3 border-t border-gray-200">
-                      <div className="flex justify-between items-center text-sm">
-                        <span className="text-gray-600">Subtotal ({passengers.length} pasajeros):</span>
-                        <span className="font-semibold text-gray-800">
-                          ${(flight.price * passengers.length).toFixed(2)}
-                        </span>
+                  {/* Precios y Equipaje */}
+                  <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                    <h5 className="font-semibold text-gray-800 mb-4 flex items-center text-base">
+                      <DollarSign className="w-5 h-5 mr-2 text-green-600" />
+                      Precios y Equipaje
+                    </h5>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Precio por Pasajero (Costo Neto)
+                          {validationErrors[flight.id]?.price && (
+                            <AlertCircle className="w-4 h-4 inline ml-1 text-red-500" />
+                          )}
+                        </label>
+                        <input
+                          type="text"
+                          value={formatInputValue(flight.price)}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            const value = e.target.value;
+                            // Permitir entrada libre durante la escritura
+                            handleFlightUpdate(flight.id, 'price', value === '' ? 0 : parseFloat(value) || 0);
+                            setValidationErrors(prev => ({
+                              ...prev,
+                              [flight.id]: { ...prev[flight.id], price: null }
+                            }));
+                          }}
+                          onBlur={(e) => {
+                            e.stopPropagation();
+                            const cleanedValue = parseFloat(e.target.value) || 0;
+                            const formattedValue = formatInputValue(cleanedValue);
+                            
+                            // Actualizar el estado con el valor numérico limpio
+                            handleFlightUpdate(flight.id, 'price', cleanedValue);
+                            
+                            // Actualizar el input con el valor formateado
+                            e.target.value = formattedValue;
+                          }}
+                          placeholder="0.00"
+                          className={clsx(
+                            "w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent cursor-text transition-all",
+                            validationErrors[flight.id]?.price ? "border-red-500 focus:ring-red-500 bg-red-50" : "border-gray-300 hover:border-gray-400"
+                          )}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        {validationErrors[flight.id]?.price && (
+                          <p className="text-xs text-red-600 mt-1">{validationErrors[flight.id].price}</p>
+                        )}
+                        <p className="text-xs text-gray-500 mt-1">
+                          Ingresa el costo neto por pasajero (sin comisión)
+                        </p>
                       </div>
-                      <div className="flex justify-between items-center text-base font-semibold pt-2 border-t">
-                        <span>Total Neto:</span>
-                        <span className="text-primary-600">
-                          ${(flight.price * passengers.length).toFixed(2)}
-                        </span>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <Info className="w-4 h-4 inline mr-1" />
+                          Detalle de Equipaje
+                        </label>
+                        <textarea
+                          value={flight.luggageDetail}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            handleFlightUpdate(flight.id, 'luggageDetail', e.target.value);
+                          }}
+                          placeholder="Ej: Maleta de 25kg + Objeto personal, Equipaje de mano, etc."
+                          rows={3}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none transition-all hover:border-gray-400"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Describa qué incluye el plan de equipaje para cada pasajero
+                        </p>
                       </div>
                     </div>
-                  )}
+
+                    {flight.price > 0 && (
+                      <div className="pt-4 mt-4 border-t border-gray-200 bg-gray-50 rounded-lg p-4">
+                        <div className="flex justify-between items-center text-sm mb-2">
+                          <span className="text-gray-600">Subtotal ({passengers.length} pasajeros):</span>
+                          <span className="font-semibold text-gray-800">
+                            ${(flight.price * passengers.length).toFixed(2)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center text-lg font-bold pt-2 border-t border-gray-300">
+                          <span className="text-gray-700">Total Neto:</span>
+                          <span className="text-primary-600">
+                            ${(flight.price * passengers.length).toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
             </Accordion>
           ))}
         </AccordionGroup>
       </CardContent>
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md mx-4 shadow-xl">
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">Confirmar Eliminación</h3>
+            <p className="text-gray-600 mb-6">
+              ¿Está seguro de que desea eliminar esta opción de vuelo? Esta acción no se puede deshacer.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <Button
+                variant="outline"
+                onClick={handleDeleteCancel}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="danger"
+                onClick={handleDeleteConfirm}
+              >
+                Eliminar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -113,8 +113,12 @@ const actionTypes = {
   REMOVE_PASSENGER: 'REMOVE_PASSENGER',
   UPDATE_FLIGHT: 'UPDATE_FLIGHT',
   SELECT_FLIGHT: 'SELECT_FLIGHT',
+  DUPLICATE_FLIGHT: 'DUPLICATE_FLIGHT',
+  DELETE_FLIGHT: 'DELETE_FLIGHT',
   UPDATE_ACCOMMODATION: 'UPDATE_ACCOMMODATION',
   SELECT_ACCOMMODATION: 'SELECT_ACCOMMODATION',
+  DUPLICATE_ACCOMMODATION: 'DUPLICATE_ACCOMMODATION',
+  DELETE_ACCOMMODATION: 'DELETE_ACCOMMODATION',
   UPDATE_TRANSFERS: 'UPDATE_TRANSFERS',
   ADD_EXTRA: 'ADD_EXTRA',
   UPDATE_EXTRA: 'UPDATE_EXTRA',
@@ -208,6 +212,30 @@ function quotationReducer(state, action) {
         }))
       };
 
+    case actionTypes.DUPLICATE_FLIGHT:
+      const flightToDuplicate = state.flights.find(f => f.id === action.payload.id);
+      if (!flightToDuplicate) return state;
+      const newFlight = {
+        ...flightToDuplicate,
+        id: Date.now(),
+        selected: false,
+        airline: flightToDuplicate.airline + ' (Copia)',
+        route: { ...flightToDuplicate.route },
+        outbound: { ...flightToDuplicate.outbound },
+        return: { ...flightToDuplicate.return }
+      };
+      return {
+        ...state,
+        flights: [...state.flights, newFlight]
+      };
+
+    case actionTypes.DELETE_FLIGHT:
+      if (state.flights.length <= 1) return state;
+      return {
+        ...state,
+        flights: state.flights.filter(f => f.id !== action.payload.id)
+      };
+
     case actionTypes.UPDATE_ACCOMMODATION:
       return {
         ...state,
@@ -242,6 +270,28 @@ function quotationReducer(state, action) {
           }
           return updatedAccommodation;
         })
+      };
+
+    case actionTypes.DUPLICATE_ACCOMMODATION:
+      const accommodationToDuplicate = state.accommodations.find(a => a.id === action.payload.id);
+      if (!accommodationToDuplicate) return state;
+      const newAccommodation = {
+        ...accommodationToDuplicate,
+        id: Date.now(),
+        selected: false,
+        name: accommodationToDuplicate.name + ' (Copia)',
+        images: [...(accommodationToDuplicate.images || ['', '', ''])]
+      };
+      return {
+        ...state,
+        accommodations: [...state.accommodations, newAccommodation]
+      };
+
+    case actionTypes.DELETE_ACCOMMODATION:
+      if (state.accommodations.length <= 1) return state;
+      return {
+        ...state,
+        accommodations: state.accommodations.filter(a => a.id !== action.payload.id)
       };
 
     case actionTypes.UPDATE_TRANSFERS:
@@ -428,9 +478,13 @@ export function useTravelQuotation() {
     
     updateFlight: (id, updates) => dispatch({ type: actionTypes.UPDATE_FLIGHT, payload: { id, updates } }),
     selectFlight: (id) => dispatch({ type: actionTypes.SELECT_FLIGHT, payload: { id } }),
+    duplicateFlight: (id) => dispatch({ type: actionTypes.DUPLICATE_FLIGHT, payload: { id } }),
+    deleteFlight: (id) => dispatch({ type: actionTypes.DELETE_FLIGHT, payload: { id } }),
     
     updateAccommodation: (id, updates) => dispatch({ type: actionTypes.UPDATE_ACCOMMODATION, payload: { id, updates } }),
     selectAccommodation: (id) => dispatch({ type: actionTypes.SELECT_ACCOMMODATION, payload: { id } }),
+    duplicateAccommodation: (id) => dispatch({ type: actionTypes.DUPLICATE_ACCOMMODATION, payload: { id } }),
+    deleteAccommodation: (id) => dispatch({ type: actionTypes.DELETE_ACCOMMODATION, payload: { id } }),
     
     updateTransfers: (transfers) => dispatch({ type: actionTypes.UPDATE_TRANSFERS, payload: transfers }),
     

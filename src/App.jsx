@@ -258,6 +258,8 @@ function App() {
                   flights={state.flights}
                   onUpdateFlight={actions.updateFlight}
                   onSelectFlight={actions.selectFlight}
+                  onDuplicateFlight={actions.duplicateFlight}
+                  onDeleteFlight={actions.deleteFlight}
                   passengers={state.passengers}
                   onDurationChange={handleDurationChange}
                 />
@@ -271,6 +273,8 @@ function App() {
                   accommodations={state.accommodations}
                   onUpdateAccommodation={actions.updateAccommodation}
                   onSelectAccommodation={actions.selectAccommodation}
+                  onDuplicateAccommodation={actions.duplicateAccommodation}
+                  onDeleteAccommodation={actions.deleteAccommodation}
                 />
               </CardContent>
             </Card>
