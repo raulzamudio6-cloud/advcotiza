@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { getAgencyConfig, saveAgencyConfig as saveAgencyConfigToSupabase } from '../services/agencyService';
 
 // Estructura de configuración de la agencia
 const initialAgencyConfig = {
@@ -28,25 +29,36 @@ export const AgencyConfigProvider = ({ children }) => {
   const [agencyConfig, setAgencyConfig] = useState(initialAgencyConfig);
   const [loading, setLoading] = useState(true);
 
-  // Simular carga de configuración desde API o localStorage
+  // Load agency configuration from Supabase
   useEffect(() => {
     const loadAgencyConfig = async () => {
       try {
-        // Aquí podrías cargar desde una API
-        // const response = await fetch('/api/agency-config');
-        // const config = await response.json();
+        const supabaseConfig = await getAgencyConfig();
         
-        // Por ahora, simulamos con datos de ejemplo
-        // También podrías cargar desde localStorage
-        const savedConfig = localStorage.getItem('agencyConfig');
-        if (savedConfig) {
-          setAgencyConfig(JSON.parse(savedConfig));
+        if (supabaseConfig) {
+          // Transform Supabase data to match existing structure
+          setAgencyConfig({
+            agencyName: supabaseConfig.nombre_comercial,
+            logoUrl: supabaseConfig.logo_url || initialAgencyConfig.logoUrl,
+            contact: {
+              phone: supabaseConfig.whatsapp || initialAgencyConfig.contact.phone,
+              email: supabaseConfig.email_contacto || initialAgencyConfig.contact.email
+            },
+            socialMedia: {
+              instagram: supabaseConfig.instagram || initialAgencyConfig.socialMedia.instagram,
+              facebook: supabaseConfig.facebook || initialAgencyConfig.socialMedia.facebook
+            },
+            policies: supabaseConfig.terminos_condiciones 
+              ? JSON.parse(supabaseConfig.terminos_condiciones)
+              : initialAgencyConfig.policies
+          });
         } else {
-          // Guardar configuración inicial en localStorage
-          localStorage.setItem('agencyConfig', JSON.stringify(initialAgencyConfig));
+          // Use initial config if no Supabase config exists
+          setAgencyConfig(initialAgencyConfig);
         }
       } catch (error) {
         console.error('Error loading agency config:', error);
+        setAgencyConfig(initialAgencyConfig);
       } finally {
         setLoading(false);
       }
@@ -56,16 +68,47 @@ export const AgencyConfigProvider = ({ children }) => {
   }, []);
 
   // Función para actualizar la configuración
-  const updateAgencyConfig = (newConfig) => {
+  const updateAgencyConfig = async (newConfig) => {
     const updatedConfig = { ...agencyConfig, ...newConfig };
     setAgencyConfig(updatedConfig);
-    localStorage.setItem('agencyConfig', JSON.stringify(updatedConfig));
+    
+    try {
+      // Transform to Supabase format and save
+      const supabaseData = {
+        nombre_comercial: updatedConfig.agencyName,
+        logo_url: updatedConfig.logoUrl,
+        whatsapp: updatedConfig.contact.phone,
+        email_contacto: updatedConfig.contact.email,
+        instagram: updatedConfig.socialMedia.instagram,
+        facebook: updatedConfig.socialMedia.facebook,
+        terminos_condiciones: JSON.stringify(updatedConfig.policies)
+      };
+      
+      await saveAgencyConfigToSupabase(supabaseData);
+    } catch (error) {
+      console.error('Error saving agency config to Supabase:', error);
+    }
   };
 
   // Función para resetear a configuración inicial
-  const resetAgencyConfig = () => {
+  const resetAgencyConfig = async () => {
     setAgencyConfig(initialAgencyConfig);
-    localStorage.setItem('agencyConfig', JSON.stringify(initialAgencyConfig));
+    
+    try {
+      const supabaseData = {
+        nombre_comercial: initialAgencyConfig.agencyName,
+        logo_url: initialAgencyConfig.logoUrl,
+        whatsapp: initialAgencyConfig.contact.phone,
+        email_contacto: initialAgencyConfig.contact.email,
+        instagram: initialAgencyConfig.socialMedia.instagram,
+        facebook: initialAgencyConfig.socialMedia.facebook,
+        terminos_condiciones: JSON.stringify(initialAgencyConfig.policies)
+      };
+      
+      await saveAgencyConfigToSupabase(supabaseData);
+    } catch (error) {
+      console.error('Error resetting agency config in Supabase:', error);
+    }
   };
 
   const value = {

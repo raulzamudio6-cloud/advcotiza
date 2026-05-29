@@ -9,17 +9,25 @@
     "preview": "vite preview",
     "serve": "node server.js"
   },
-  "keywords": ["travel", "quotation", "cotizador", "viajes", "professional"],
+  "keywords": [
+    "travel",
+    "quotation",
+    "cotizador",
+    "viajes",
+    "professional"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@supabase/supabase-js": "^2.105.4",
+    "clsx": "^2.0.0",
+    "date-fns": "^2.30.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^2.5.1",
+    "lucide-react": "^0.263.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "lucide-react": "^0.263.1",
-    "clsx": "^2.0.0",
-    "jspdf": "^2.5.1",
-    "html2canvas": "^1.4.1",
-    "date-fns": "^2.30.0",
+    "react-router-dom": "^7.15.1",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

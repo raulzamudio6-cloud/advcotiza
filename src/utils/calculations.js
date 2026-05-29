@@ -435,3 +435,362 @@ export const generateQuotationSummary = (state, calculations) => {
     return null;
   }
 };
+
+/**
+ * Sanitiza los datos de una cotización antes de guardar
+ * Asegura que todos los campos críticos tengan la estructura correcta
+ * @param {Object} data - Datos de la cotización a sanitizar
+ * @returns {Object} - Datos sanitizados
+ */
+export const sanitizeQuotation = (data) => {
+  try {
+    if (!data || typeof data !== 'object') {
+      console.warn('sanitizeQuotation: Datos inválidos, retornando estructura vacía');
+      return {
+        quotationTitle: '',
+        clientInfo: { name: '', email: '', phone: '' },
+        commissionRate: 20,
+        passengers: [],
+        flights: [],
+        accommodations: [],
+        additionalServices: {
+          transfers: { standard: false, standardPrice: 0, extraDetail: '', extraPrice: 0 },
+          extras: [],
+          applyCommissionToExtras: true
+        }
+      };
+    }
+
+    return {
+      ...data,
+      // Asegurar que quotationTitle sea string
+      quotationTitle: data.quotationTitle || '',
+      
+      // Asegurar que clientInfo tenga estructura mínima
+      clientInfo: {
+        name: data.clientInfo?.name || '',
+        email: data.clientInfo?.email || '',
+        phone: data.clientInfo?.phone || ''
+      },
+      
+      // Asegurar que commissionRate sea número válido
+      commissionRate: typeof data.commissionRate === 'number' ? data.commissionRate : 20,
+      
+      // Asegurar que passengers sea array
+      passengers: Array.isArray(data.passengers) ? data.passengers : [],
+      
+      // Asegurar que flights sea array
+      flights: Array.isArray(data.flights) ? data.flights : [],
+      
+      // Asegurar que accommodations sea array
+      accommodations: Array.isArray(data.accommodations) ? data.accommodations : [],
+      
+      // Asegurar que additionalServices tenga estructura correcta
+      additionalServices: {
+        transfers: {
+          standard: data.additionalServices?.transfers?.standard || false,
+          standardPrice: data.additionalServices?.transfers?.standardPrice || 0,
+          extraDetail: data.additionalServices?.transfers?.extraDetail || '',
+          extraPrice: data.additionalServices?.transfers?.extraPrice || 0
+        },
+        extras: Array.isArray(data.additionalServices?.extras) ? data.additionalServices.extras : [],
+        applyCommissionToExtras: typeof data.additionalServices?.applyCommissionToExtras === 'boolean' 
+          ? data.additionalServices.applyCommissionToExtras 
+          : true
+      }
+    };
+  } catch (error) {
+    console.error('Error sanitizando cotización:', error);
+    // Retornar estructura segura en caso de error
+    return {
+      quotationTitle: '',
+      clientInfo: { name: '', email: '', phone: '' },
+      commissionRate: 20,
+      passengers: [],
+      flights: [],
+      accommodations: [],
+      additionalServices: {
+        transfers: { standard: false, standardPrice: 0, extraDetail: '', extraPrice: 0 },
+        extras: [],
+        applyCommissionToExtras: true
+      }
+    };
+  }
+};
+
+/**
+ * Normaliza los datos de una cotización al cargar
+ * Rellena campos faltantes (Legacy Data) con valores por defecto del estado inicial
+ * @param {Object} data - Datos de la cotización a normalizar
+ * @returns {Object} - Datos normalizados
+ */
+export const normalizeQuotation = (data) => {
+  try {
+    if (!data || typeof data !== 'object') {
+      console.warn('normalizeQuotation: Datos inválidos, retornando estructura vacía');
+      return {
+        quotationTitle: '',
+        clientInfo: { name: '', email: '', phone: '' },
+        commissionRate: 20,
+        passengers: [],
+        flights: [
+          {
+            id: 1,
+            airline: '',
+            price: 0,
+            route: { origin: '', destination: '' },
+            outbound: { date: '', departureTime: '', arrivalTime: '', duration: '', stops: '' },
+            return: { date: '', departureTime: '', arrivalTime: '', duration: '', stops: '' },
+            luggageDetail: '',
+            selected: false
+          },
+          {
+            id: 2,
+            airline: '',
+            price: 0,
+            route: { origin: '', destination: '' },
+            outbound: { date: '', departureTime: '', arrivalTime: '', duration: '', stops: '' },
+            return: { date: '', departureTime: '', arrivalTime: '', duration: '', stops: '' },
+            luggageDetail: '',
+            selected: false
+          }
+        ],
+        accommodations: [
+          {
+            id: 1,
+            name: '',
+            category: 3,
+            totalPrice: 0,
+            description: '',
+            selected: false,
+            images: ['', '', '']
+          },
+          {
+            id: 2,
+            name: '',
+            category: 3,
+            totalPrice: 0,
+            description: '',
+            selected: false,
+            images: ['', '', '']
+          },
+          {
+            id: 3,
+            name: '',
+            category: 3,
+            totalPrice: 0,
+            description: '',
+            selected: false,
+            images: ['', '', '']
+          }
+        ],
+        additionalServices: {
+          transfers: { standard: false, standardPrice: 0, extraDetail: '', extraPrice: 0 },
+          extras: [],
+          applyCommissionToExtras: true
+        }
+      };
+    }
+
+    // Normalizar flights: asegurar estructura completa para cada vuelo
+    const normalizedFlights = Array.isArray(data.flights) && data.flights.length > 0 
+      ? data.flights.map((flight, index) => ({
+          id: flight.id || (index + 1),
+          airline: flight.airline || '',
+          price: typeof flight.price === 'number' ? flight.price : 0,
+          route: {
+            origin: flight.route?.origin || flight.outbound?.origin || '',
+            destination: flight.route?.destination || flight.outbound?.destination || ''
+          },
+          outbound: {
+            date: flight.outbound?.date || '',
+            departureTime: flight.outbound?.departureTime || '',
+            arrivalTime: flight.outbound?.arrivalTime || '',
+            duration: flight.outbound?.duration || '',
+            stops: flight.outbound?.stops || ''
+          },
+          return: {
+            date: flight.return?.date || '',
+            departureTime: flight.return?.departureTime || '',
+            arrivalTime: flight.return?.arrivalTime || '',
+            duration: flight.return?.duration || '',
+            stops: flight.return?.stops || ''
+          },
+          luggageDetail: flight.luggageDetail || '',
+          selected: typeof flight.selected === 'boolean' ? flight.selected : false
+        }))
+      : [
+          {
+            id: 1,
+            airline: '',
+            price: 0,
+            route: { origin: '', destination: '' },
+            outbound: { date: '', departureTime: '', arrivalTime: '', duration: '', stops: '' },
+            return: { date: '', departureTime: '', arrivalTime: '', duration: '', stops: '' },
+            luggageDetail: '',
+            selected: false
+          },
+          {
+            id: 2,
+            airline: '',
+            price: 0,
+            route: { origin: '', destination: '' },
+            outbound: { date: '', departureTime: '', arrivalTime: '', duration: '', stops: '' },
+            return: { date: '', departureTime: '', arrivalTime: '', duration: '', stops: '' },
+            luggageDetail: '',
+            selected: false
+          }
+        ];
+
+    // Normalizar accommodations: asegurar estructura completa para cada hotel
+    const normalizedAccommodations = Array.isArray(data.accommodations) && data.accommodations.length > 0
+      ? data.accommodations.map((accommodation, index) => ({
+          id: accommodation.id || (index + 1),
+          name: accommodation.name || '',
+          category: typeof accommodation.category === 'number' ? accommodation.category : 3,
+          totalPrice: typeof accommodation.totalPrice === 'number' ? accommodation.totalPrice : 0,
+          description: accommodation.description || '',
+          selected: typeof accommodation.selected === 'boolean' ? accommodation.selected : false,
+          images: Array.isArray(accommodation.images) ? accommodation.images : ['', '', '']
+        }))
+      : [
+          {
+            id: 1,
+            name: '',
+            category: 3,
+            totalPrice: 0,
+            description: '',
+            selected: false,
+            images: ['', '', '']
+          },
+          {
+            id: 2,
+            name: '',
+            category: 3,
+            totalPrice: 0,
+            description: '',
+            selected: false,
+            images: ['', '', '']
+          },
+          {
+            id: 3,
+            name: '',
+            category: 3,
+            totalPrice: 0,
+            description: '',
+            selected: false,
+            images: ['', '', '']
+          }
+        ];
+
+    // Normalizar passengers: asegurar estructura completa
+    const normalizedPassengers = Array.isArray(data.passengers)
+      ? data.passengers.map(passenger => ({
+          id: passenger.id || Date.now(),
+          name: passenger.name || '',
+          isMinor: typeof passenger.isMinor === 'boolean' ? passenger.isMinor : false,
+          age: typeof passenger.age === 'number' ? passenger.age : 0
+        }))
+      : [];
+
+    return {
+      id: data.id,
+      quotationTitle: data.quotationTitle || '',
+      clientInfo: {
+        name: data.clientInfo?.name || '',
+        email: data.clientInfo?.email || '',
+        phone: data.clientInfo?.phone || ''
+      },
+      commissionRate: typeof data.commissionRate === 'number' ? data.commissionRate : 20,
+      passengers: normalizedPassengers,
+      flights: normalizedFlights,
+      accommodations: normalizedAccommodations,
+      additionalServices: {
+        transfers: {
+          standard: data.additionalServices?.transfers?.standard || false,
+          standardPrice: data.additionalServices?.transfers?.standardPrice || 0,
+          extraDetail: data.additionalServices?.transfers?.extraDetail || '',
+          extraPrice: data.additionalServices?.transfers?.extraPrice || 0
+        },
+        extras: Array.isArray(data.additionalServices?.extras) 
+          ? data.additionalServices.extras.map(extra => ({
+              id: extra.id || Date.now(),
+              name: extra.name || '',
+              price: typeof extra.price === 'number' ? extra.price : 0
+            }))
+          : [],
+        applyCommissionToExtras: typeof data.additionalServices?.applyCommissionToExtras === 'boolean' 
+          ? data.additionalServices.applyCommissionToExtras 
+          : true
+      },
+      tripDuration: data.tripDuration || { days: 0, nights: 0 },
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt
+    };
+  } catch (error) {
+    console.error('Error normalizando cotización:', error);
+    // Retornar estructura segura en caso de error
+    return {
+      quotationTitle: '',
+      clientInfo: { name: '', email: '', phone: '' },
+      commissionRate: 20,
+      passengers: [],
+      flights: [
+        {
+          id: 1,
+          airline: '',
+          price: 0,
+          route: { origin: '', destination: '' },
+          outbound: { date: '', departureTime: '', arrivalTime: '', duration: '', stops: '' },
+          return: { date: '', departureTime: '', arrivalTime: '', duration: '', stops: '' },
+          luggageDetail: '',
+          selected: false
+        },
+        {
+          id: 2,
+          airline: '',
+          price: 0,
+          route: { origin: '', destination: '' },
+          outbound: { date: '', departureTime: '', arrivalTime: '', duration: '', stops: '' },
+          return: { date: '', departureTime: '', arrivalTime: '', duration: '', stops: '' },
+          luggageDetail: '',
+          selected: false
+        }
+      ],
+      accommodations: [
+        {
+          id: 1,
+          name: '',
+          category: 3,
+          totalPrice: 0,
+          description: '',
+          selected: false,
+          images: ['', '', '']
+        },
+        {
+          id: 2,
+          name: '',
+          category: 3,
+          totalPrice: 0,
+          description: '',
+          selected: false,
+          images: ['', '', '']
+        },
+        {
+          id: 3,
+          name: '',
+          category: 3,
+          totalPrice: 0,
+          description: '',
+          selected: false,
+          images: ['', '', '']
+        }
+      ],
+      additionalServices: {
+        transfers: { standard: false, standardPrice: 0, extraDetail: '', extraPrice: 0 },
+        extras: [],
+        applyCommissionToExtras: true
+      }
+    };
+  }
+};

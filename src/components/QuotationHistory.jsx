@@ -11,22 +11,23 @@ import {
   RefreshCw,
   FileText,
   Upload,
-  DownloadCloud
+  DownloadCloud,
+  Search,
+  Filter,
+  X
 } from 'lucide-react';
 import { Card, CardHeader, CardContent } from './UI/Card';
 import { Button } from './UI/Input';
 import clsx from 'clsx';
 import { 
-  getAllQuotations, 
-  loadQuotation, 
+  getQuotations, 
+  getQuotationById, 
   deleteQuotation, 
-  exportQuotations, 
-  importQuotations,
-  clearAllQuotations,
-  getQuotationsStats
-} from '../services/storageService';
+  getQuotationsStats,
+  saveQuotation as saveQuotationToSupabase
+} from '../services/quotationService';
 import { formatMXN } from '../utils/formatters';
-import { formatDisplayDate } from '../utils/calculations';
+import { formatDisplayDate, normalizeQuotation } from '../utils/calculations';
 
 export const QuotationHistory = ({ onLoadQuotation, currentQuotationId }) => {
   const [quotations, setQuotations] = useState([]);
@@ -36,6 +37,13 @@ export const QuotationHistory = ({ onLoadQuotation, currentQuotationId }) => {
   const [selectedQuotation, setSelectedQuotation] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [showImportDialog, setShowImportDialog] = useState(false);
+  
+  // Filters
+  const [filters, setFilters] = useState({
+    clientName: '',
+    startDate: '',
+    endDate: ''
+  });
 
   // Cargar cotizaciones al montar el componente
   useEffect(() => {
@@ -46,15 +54,35 @@ export const QuotationHistory = ({ onLoadQuotation, currentQuotationId }) => {
     try {
       setLoading(true);
       setError(null);
-      const allQuotations = getAllQuotations();
-      const statsData = getQuotationsStats();
       
-      // Ordenar por fecha de actualización descendente
-      const sortedQuotations = allQuotations.sort((a, b) => 
-        new Date(b.updatedAt) - new Date(a.updatedAt)
-      );
+      // Apply filters
+      const activeFilters = {};
+      if (filters.clientName) activeFilters.clientName = filters.clientName;
+      if (filters.startDate) activeFilters.startDate = filters.startDate;
+      if (filters.endDate) activeFilters.endDate = filters.endDate;
       
-      setQuotations(sortedQuotations);
+      const allQuotations = await getQuotations(activeFilters);
+      const statsData = await getQuotationsStats();
+      
+      // Transform Supabase data to match expected format
+      const transformedQuotations = allQuotations.map(q => ({
+        id: q.id,
+        quotationTitle: q.quotation_title,
+        clientInfo: q.client_info,
+        passengers: q.passengers,
+        flights: q.flights,
+        accommodations: q.accommodations,
+        additionalServices: q.additional_services,
+        commissionRate: q.commission_rate,
+        tripDuration: q.trip_duration,
+        createdAt: q.created_at,
+        updatedAt: q.updated_at
+      }));
+      
+      // Normalize each quotation to fill missing fields with defaults
+      const normalizedQuotations = transformedQuotations.map(q => normalizeQuotation(q));
+      
+      setQuotations(normalizedQuotations);
       setStats(statsData);
     } catch (err) {
       setError('Error al cargar las cotizaciones: ' + err.message);
@@ -66,16 +94,34 @@ export const QuotationHistory = ({ onLoadQuotation, currentQuotationId }) => {
   const handleLoadQuotation = async (quotationId) => {
     try {
       setLoading(true);
-      const result = loadQuotation(quotationId);
+      const quotation = await getQuotationById(quotationId);
       
-      if (result.success) {
+      if (quotation) {
+        // Transform Supabase data to match expected format
+        const transformedQuotation = {
+          id: quotation.id,
+          quotationTitle: quotation.quotation_title,
+          clientInfo: quotation.client_info,
+          passengers: quotation.passengers,
+          flights: quotation.flights,
+          accommodations: quotation.accommodations,
+          additionalServices: quotation.additional_services,
+          commissionRate: quotation.commission_rate,
+          tripDuration: quotation.trip_duration,
+          createdAt: quotation.created_at,
+          updatedAt: quotation.updated_at
+        };
+        
+        // Normalize quotation to fill missing fields with defaults
+        const normalizedQuotation = normalizeQuotation(transformedQuotation);
+        
         // Llamar a la función del componente padre para cargar la cotización
         if (onLoadQuotation) {
-          onLoadQuotation(result.data);
+          onLoadQuotation(normalizedQuotation);
         }
         setSelectedQuotation(null);
       } else {
-        setError(result.error);
+        setError('No se encontró la cotización');
       }
     } catch (err) {
       setError('Error al cargar la cotización: ' + err.message);
@@ -87,13 +133,13 @@ export const QuotationHistory = ({ onLoadQuotation, currentQuotationId }) => {
   const handleDeleteQuotation = async (quotationId) => {
     try {
       setLoading(true);
-      const result = deleteQuotation(quotationId);
+      const result = await deleteQuotation(quotationId);
       
       if (result.success) {
         await loadQuotations(); // Recargar la lista
         setShowDeleteConfirm(null);
       } else {
-        setError(result.error);
+        setError(result.message);
       }
     } catch (err) {
       setError('Error al eliminar la cotización: ' + err.message);
@@ -105,22 +151,23 @@ export const QuotationHistory = ({ onLoadQuotation, currentQuotationId }) => {
   const handleExportQuotations = async () => {
     try {
       setLoading(true);
-      const result = exportQuotations();
       
-      if (result.success) {
-        // Crear y descargar el archivo
-        const blob = new Blob([result.data], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = result.filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      } else {
-        setError(result.error);
-      }
+      // Export current quotations as JSON
+      const exportData = {
+        version: '1.0.0',
+        exportDate: new Date().toISOString(),
+        quotations: quotations
+      };
+      
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `cotizaciones_backup_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     } catch (err) {
       setError('Error al exportar las cotizaciones: ' + err.message);
     } finally {
@@ -135,15 +182,24 @@ export const QuotationHistory = ({ onLoadQuotation, currentQuotationId }) => {
       
       setLoading(true);
       const text = await file.text();
-      const result = importQuotations(text);
+      const importData = JSON.parse(text);
       
-      if (result.success) {
-        await loadQuotations(); // Recargar la lista
-        setShowImportDialog(false);
-        alert(`Se importaron ${result.imported} cotizaciones correctamente. Total: ${result.total}`);
-      } else {
-        setError(result.error);
+      if (!importData.quotations || !Array.isArray(importData.quotations)) {
+        throw new Error('Formato de archivo inválido');
       }
+      
+      // Import each quotation using Supabase
+      let importedCount = 0;
+      for (const quotation of importData.quotations) {
+        const result = await saveQuotationToSupabase(quotation);
+        if (result.success) {
+          importedCount++;
+        }
+      }
+      
+      await loadQuotations(); // Recargar la lista
+      setShowImportDialog(false);
+      alert(`Se importaron ${importedCount} cotizaciones correctamente.`);
       
       // Limpiar el input
       event.target.value = '';
@@ -161,14 +217,14 @@ export const QuotationHistory = ({ onLoadQuotation, currentQuotationId }) => {
     
     try {
       setLoading(true);
-      const result = clearAllQuotations();
       
-      if (result.success) {
-        await loadQuotations();
-        alert('Todas las cotizaciones han sido eliminadas');
-      } else {
-        setError(result.error);
+      // Delete all quotations one by one
+      for (const quotation of quotations) {
+        await deleteQuotation(quotation.id);
       }
+      
+      await loadQuotations();
+      alert('Todas las cotizaciones han sido eliminadas');
     } catch (err) {
       setError('Error al eliminar las cotizaciones: ' + err.message);
     } finally {
@@ -238,6 +294,78 @@ export const QuotationHistory = ({ onLoadQuotation, currentQuotationId }) => {
                 </div>
                 <RefreshCw className="w-8 h-8 text-purple-400" />
               </div>
+            </div>
+          </div>
+
+          {/* Filtros */}
+          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-4">
+            <div className="flex items-center space-x-2 mb-3">
+              <Filter className="w-4 h-4 text-gray-600" />
+              <h4 className="font-medium text-gray-800">Filtros</h4>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nombre del Cliente
+                </label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    value={filters.clientName}
+                    onChange={(e) => setFilters({ ...filters, clientName: e.target.value })}
+                    placeholder="Buscar por nombre..."
+                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Fecha Desde
+                </label>
+                <input
+                  type="date"
+                  value={filters.startDate}
+                  onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Fecha Hasta
+                </label>
+                <input
+                  type="date"
+                  value={filters.endDate}
+                  onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 mt-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={loadQuotations}
+                disabled={loading}
+                className="flex items-center space-x-1"
+              >
+                <Search className="w-4 h-4" />
+                <span>Aplicar Filtros</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setFilters({ clientName: '', startDate: '', endDate: '' });
+                  loadQuotations();
+                }}
+                disabled={loading}
+                className="flex items-center space-x-1"
+              >
+                <X className="w-4 h-4" />
+                <span>Limpiar Filtros</span>
+              </Button>
             </div>
           </div>
 
@@ -370,7 +498,7 @@ export const QuotationHistory = ({ onLoadQuotation, currentQuotationId }) => {
                           <FileText className="w-4 h-4 text-gray-400 mr-2" />
                           <div>
                             <div className="text-sm font-medium text-gray-900">
-                              {quotation.quotationTitle}
+                              {quotation.quotationTitle || 'Sin Título'}
                             </div>
                             {quotation.id === currentQuotationId && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
@@ -384,7 +512,7 @@ export const QuotationHistory = ({ onLoadQuotation, currentQuotationId }) => {
                         <div className="flex items-center">
                           <User className="w-4 h-4 text-gray-400 mr-2" />
                           <div className="text-sm text-gray-900">
-                            {quotation.clientInfo.name}
+                            {quotation.clientInfo?.name || 'Sin Cliente'}
                           </div>
                         </div>
                       </td>
@@ -505,9 +633,9 @@ export const QuotationHistory = ({ onLoadQuotation, currentQuotationId }) => {
               
               <div className="space-y-4">
                 <div>
-                  <h4 className="font-medium text-gray-800">{selectedQuotation.quotationTitle}</h4>
+                  <h4 className="font-medium text-gray-800">{selectedQuotation.quotationTitle || 'Sin Título'}</h4>
                   <p className="text-sm text-gray-600">
-                    Cliente: {selectedQuotation.clientInfo.name}
+                    Cliente: {selectedQuotation.clientInfo?.name || 'Sin Cliente'}
                   </p>
                   <p className="text-sm text-gray-600">
                     Pasajeros: {selectedQuotation.passengers.length}

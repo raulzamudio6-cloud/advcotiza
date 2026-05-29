@@ -3,11 +3,13 @@ import { Download, FileText, Printer } from 'lucide-react';
 import { Button } from './UI/Input';
 import jsPDF from 'jspdf';
 import { formatMXN } from '../utils/formatters';
+import { useAgencyConfig } from '../contexts/AgencyConfigContext';
 
 export const PDFGenerator = ({ state, calculations, tripDuration }) => {
   const selectedFlight = calculations.selectedFlight;
   const selectedAccommodation = calculations.selectedAccommodation;
   const { passengers, additionalServices } = state;
+  const { agencyConfig } = useAgencyConfig();
 
   const formatDate = (dateString) => {
     if (!dateString) return 'No especificado';
@@ -42,14 +44,16 @@ export const PDFGenerator = ({ state, calculations, tripDuration }) => {
     // Cargar logo de agencia de forma asíncrona
     let logoData = null;
     try {
-      const logoResponse = await fetch('/images/logo sin fondo.png');
-      if (logoResponse.ok) {
-        const logoBlob = await logoResponse.blob();
-        logoData = await new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result);
-          reader.readAsDataURL(logoBlob);
-        });
+      if (agencyConfig?.logoUrl) {
+        const logoResponse = await fetch(agencyConfig.logoUrl);
+        if (logoResponse.ok) {
+          const logoBlob = await logoResponse.blob();
+          logoData = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(logoBlob);
+          });
+        }
       }
     } catch (error) {
       console.log('Logo no encontrado, usando texto alternativo');
@@ -612,10 +616,10 @@ export const PDFGenerator = ({ state, calculations, tripDuration }) => {
         doc.setFont('helvetica', 'bold');
         
         const contactY = 285;
-        doc.text('📱 WhatsApp: 442 6780784', 30, contactY);
-        doc.text('📧 Email: vdvmaletalista@gmail.com', 90, contactY);
-        doc.text('📷 Instagram: @vdvmaletalista', 30, contactY + 10);
-        doc.text('📘 Facebook: @vdvmaletalista', 90, contactY + 10);
+        doc.text(`📱 WhatsApp: ${agencyConfig?.contact?.phone || 'No especificado'}`, 30, contactY);
+        doc.text(`📧 Email: ${agencyConfig?.contact?.email || 'No especificado'}`, 90, contactY);
+        doc.text(`📷 Instagram: ${agencyConfig?.socialMedia?.instagram || 'No especificado'}`, 30, contactY + 10);
+        doc.text(`📘 Facebook: ${agencyConfig?.socialMedia?.facebook || 'No especificado'}`, 90, contactY + 10);
       }
     } else {
       // Fallback a footer de texto si no hay imagen
@@ -627,10 +631,10 @@ export const PDFGenerator = ({ state, calculations, tripDuration }) => {
       doc.setFont('helvetica', 'bold');
       
       const contactY = 285;
-      doc.text('📱 WhatsApp: 442 6780784', 30, contactY);
-      doc.text('📧 Email: vdvmaletalista@gmail.com', 90, contactY);
-      doc.text('📷 Instagram: @vdvmaletalista', 30, contactY + 10);
-      doc.text('📘 Facebook: @vdvmaletalista', 90, contactY + 10);
+      doc.text(`📱 WhatsApp: ${agencyConfig?.contact?.phone || 'No especificado'}`, 30, contactY);
+      doc.text(`📧 Email: ${agencyConfig?.contact?.email || 'No especificado'}`, 90, contactY);
+      doc.text(`📷 Instagram: ${agencyConfig?.socialMedia?.instagram || 'No especificado'}`, 30, contactY + 10);
+      doc.text(`📘 Facebook: ${agencyConfig?.socialMedia?.facebook || 'No especificado'}`, 90, contactY + 10);
     }
     
     
@@ -1134,7 +1138,7 @@ export const PDFGenerator = ({ state, calculations, tripDuration }) => {
         </div>
         
         <div class="footer">
-          <div>WhatsApp: 442 6780784 | Email: vdvmaletalista@gmail.com | Instagram: @vdvmaletalista | Facebook: @vdvmaletalista</div>
+          <div>WhatsApp: ${agencyConfig?.contact?.phone || 'No especificado'} | Email: ${agencyConfig?.contact?.email || 'No especificado'} | Instagram: ${agencyConfig?.socialMedia?.instagram || 'No especificado'} | Facebook: ${agencyConfig?.socialMedia?.facebook || 'No especificado'}</div>
         </div>
       </body>
       </html>

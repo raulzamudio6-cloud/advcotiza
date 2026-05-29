@@ -1,6 +1,6 @@
 import React from 'react';
 import clsx from 'clsx';
-import { Briefcase, Save, History, FileText, CheckCircle, AlertCircle } from 'lucide-react';
+import { Briefcase, Save, History, FileText, CheckCircle, AlertCircle, Settings, RefreshCw } from 'lucide-react';
 import { Button } from './UI/Input';
 import { useAgencyConfig } from '../contexts/AgencyConfigContext';
 
@@ -9,7 +9,9 @@ export const Header = ({
   onViewChange, 
   onSaveQuotation, 
   saveStatus,
-  onResetQuotation
+  onResetQuotation,
+  currentQuotationId,
+  quotationTitle
 }) => {
   const { agencyConfig, loading } = useAgencyConfig();
   return (
@@ -26,9 +28,19 @@ export const Header = ({
                 </div>
               </div>
               <div className="min-w-0 flex-1">
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white leading-tight">
-                  {loading ? 'Cargando...' : agencyConfig.agencyName}
-                </h1>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white leading-tight">
+                    {loading ? 'Cargando...' : agencyConfig.agencyName}
+                  </h1>
+                  {currentView === 'form' && (
+                    <span className={clsx(
+                      "inline-flex items-center px-2 py-1 rounded text-xs font-medium",
+                      currentQuotationId ? "bg-green-500/20 text-green-200 border border-green-400/30" : "bg-blue-500/20 text-blue-200 border border-blue-400/30"
+                    )}>
+                      {currentQuotationId ? 'Editando' : 'Nueva'}
+                    </span>
+                  )}
+                </div>
                 <p className="text-primary-100 text-xs sm:text-sm lg:text-base mt-1 hidden sm:block">
                   Sistema Profesional de Cotización de Viajes
                 </p>
@@ -74,6 +86,20 @@ export const Header = ({
                 >
                   <History className="w-4 h-4" />
                   <span className="text-sm font-medium">Mis Cotizaciones</span>
+                </Button>
+
+                <Button
+                  variant={currentView === 'settings' ? 'default' : 'outline'}
+                  onClick={() => onViewChange('settings')}
+                  className={clsx(
+                    "flex items-center space-x-2 px-3 py-2 sm:px-4 transition-all duration-200",
+                    currentView === 'settings' 
+                      ? "bg-white text-primary-600 border-white shadow-lg" 
+                      : "bg-white/10 hover:bg-white/20 text-white border-white/30 backdrop-blur-sm"
+                  )}
+                >
+                  <Settings className="w-4 h-4" />
+                  <span className="text-sm font-medium">Ajustes</span>
                 </Button>
               </div>
 
