@@ -5,7 +5,13 @@ import Login from './Login';
 const ProtectedRoute = ({ children }) => {
   const { session, loading } = useAuth();
 
+  console.log('=== PROTECTEDROUTE RENDER ===');
+  console.log('Estado:', { loading, session: session ? 'Presente' : 'Ausente' });
+  console.log('Session ID:', session?.user?.id);
+  console.log('User Email:', session?.user?.email);
+
   if (loading) {
+    console.warn('⚠️  ProtectedRoute: loading = true, mostrando spinner');
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -34,9 +40,11 @@ const ProtectedRoute = ({ children }) => {
   }
 
   if (!session) {
+    console.log('✓ ProtectedRoute: loading = false, session = null, mostrando Login');
     return <Login />;
   }
 
+  console.log('✓ ProtectedRoute: loading = false, session = presente, mostrando children');
   return <>{children}</>;
 };
 

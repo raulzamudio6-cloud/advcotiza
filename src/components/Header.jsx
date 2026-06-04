@@ -1,8 +1,9 @@
 import React from 'react';
 import clsx from 'clsx';
-import { Briefcase, Save, History, FileText, CheckCircle, AlertCircle, Settings, RefreshCw } from 'lucide-react';
+import { Briefcase, Save, History, FileText, CheckCircle, AlertCircle, Settings, RefreshCw, LogOut, User, LogIn } from 'lucide-react';
 import { Button } from './UI/Input';
 import { useAgencyConfig } from '../contexts/AgencyConfigContext';
+import { useAuth } from '../contexts/AuthContext';
 
 export const Header = ({ 
   currentView, 
@@ -14,6 +15,85 @@ export const Header = ({
   quotationTitle
 }) => {
   const { agencyConfig, loading } = useAgencyConfig();
+  const { user, signOut, signInWithGoogle } = useAuth();
+
+  console.log('=== HEADER RENDER ===');
+  console.log('Estado de auth:', { 
+    user: user ? 'Presente' : 'Ausente', 
+    userEmail: user?.email,
+    userName: user?.user_metadata?.full_name 
+  });
+
+  const handleLogout = async () => {
+    console.log('>>> handleLogout iniciado');
+    try {
+      await signOut();
+      console.log('✓ signOut() completado');
+    } catch (error) {
+      console.error('!!! Error al cerrar sesión:', error);
+    }
+  };
+
+  const handleLogin = async () => {
+    console.log('>>> handleLogin iniciado');
+    try {
+      await signInWithGoogle();
+      console.log('✓ signInWithGoogle llamado exitosamente');
+    } catch (error) {
+      console.error('!!! Error al iniciar sesión:', error);
+    }
+  };
+
+  // Componente UserMenu - muestra cuando el usuario está logueado
+  const UserMenu = () => {
+    const initials = user.user_metadata?.full_name
+      ? user.user_metadata.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+      : user.email?.split('@')[0].toUpperCase().slice(0, 2) || 'U';
+
+    return (
+      <div className="flex items-center gap-3 bg-white/10 rounded-lg px-4 py-2 backdrop-blur-sm">
+        {user.user_metadata?.avatar_url ? (
+          <img 
+            src={user.user_metadata.avatar_url} 
+            alt="Avatar" 
+            className="w-8 h-8 rounded-full border-2 border-white/30"
+          />
+        ) : (
+          <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center border-2 border-white/30">
+            <span className="text-xs font-bold text-white">{initials}</span>
+          </div>
+        )}
+        <div className="text-sm">
+          <p className="font-medium text-white">
+            {user.user_metadata?.full_name || user.email?.split('@')[0]}
+          </p>
+          <p className="text-xs text-primary-200">{user.email}</p>
+        </div>
+        <button
+          onClick={handleLogout}
+          className="ml-2 p-2 hover:bg-white/20 rounded-lg transition-colors group"
+          title="Cerrar sesión"
+          type="button"
+        >
+          <LogOut className="w-4 h-4 group-hover:rotate-180 transition-transform duration-300" />
+        </button>
+      </div>
+    );
+  };
+
+  // Componente LoginButton - muestra cuando el usuario NO está logueado
+  const LoginButton = () => {
+    return (
+      <button
+        onClick={handleLogin}
+        className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white border border-white/30 px-4 py-2 rounded-lg backdrop-blur-sm transition-all duration-200"
+      >
+        <LogIn className="w-4 h-4" />
+        <span className="text-sm font-medium">Iniciar Sesión</span>
+      </button>
+    );
+  };
+
   return (
     <header className="bg-primary-600 text-white shadow-xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -53,8 +133,12 @@ export const Header = ({
         <div className="border-t border-primary-500/30">
           <div className="py-4">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+              {/* Auth Section - Conditional Rendering */}
+              <div className="flex items-center gap-3">
+                {user ? <UserMenu /> : <LoginButton />}
+              </div>
               {/* Navigation Tabs */}
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 flex-1">
                 <Button
                   variant={currentView === 'form' ? 'default' : 'outline'}
                   onClick={() => {

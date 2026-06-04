@@ -66,20 +66,42 @@ export const getQuotationById = async (id) => {
  * If quotationData.id exists, it updates; otherwise, it creates a new one
  */
 export const saveQuotation = async (quotationData) => {
+  console.log('=== SAVE QUOTATION TO SUPABASE INICIADO ===');
+  console.log('Datos de cotización:', quotationData);
+  
   try {
+    console.log('>>> Obteniendo usuario autenticado...');
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
+    if (!user) {
+      console.error('!!! Usuario no autenticado');
+      throw new Error('User not authenticated');
+    }
+    console.log('✓ Usuario autenticado:', user.email);
 
-    // Get user's agency ID
-    const { data: agency } = await supabase
-      .from('agencias')
-      .select('id')
-      .eq('user_id', user.id)
-      .single();
+    // Get user's agency ID (opcional - si falla, guardar sin agencia)
+    console.log('>>> Intentando obtener agencia del usuario...');
+    let agencyId = null;
+    try {
+      const { data: agency } = await supabase
+        .from('agencias')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (agency) {
+        agencyId = agency.id;
+        console.log('✓ Agencia encontrada:', agencyId);
+      } else {
+        console.warn('⚠️  No se encontró agencia para el usuario, guardando sin agencia_id');
+      }
+    } catch (agencyError) {
+      console.warn('⚠️  Error al obtener agencia (continuando sin agencia_id):', agencyError.message);
+      // Continuar sin agencia_id si la tabla no existe o hay error
+    }
 
     const quotationPayload = {
       user_id: user.id,
-      agencia_id: agency?.id || null,
+      agencia_id: agencyId,
       quotation_title: quotationData.quotationTitle,
       commission_rate: quotationData.commissionRate,
       client_info: quotationData.clientInfo,
@@ -92,20 +114,27 @@ export const saveQuotation = async (quotationData) => {
       updated_at: new Date().toISOString()
     };
 
+    console.log('>>> Payload preparado, intentando guardar en Supabase...');
     let result;
 
     if (quotationData.id && quotationData.id.startsWith('quotation_')) {
       // This is a localStorage ID, create new quotation in Supabase
+      console.log('>>> Creando nueva cotización (ID de localStorage)...');
       const { data, error } = await supabase
         .from('cotizaciones')
         .insert([quotationPayload])
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('!!! Error al insertar cotización:', error);
+        throw error;
+      }
+      console.log('✓ Cotización insertada exitosamente');
       result = { success: true, data, message: 'Cotización guardada en la nube', isNew: true };
     } else if (quotationData.id) {
       // Update existing quotation
+      console.log('>>> Actualizando cotización existente...');
       const { data, error } = await supabase
         .from('cotizaciones')
         .update(quotationPayload)
@@ -114,23 +143,38 @@ export const saveQuotation = async (quotationData) => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('!!! Error al actualizar cotización:', error);
+        throw error;
+      }
+      console.log('✓ Cotización actualizada exitosamente');
       result = { success: true, data, message: 'Cotización actualizada correctamente', isNew: false };
     } else {
       // Create new quotation
+      console.log('>>> Creando nueva cotización...');
       const { data, error } = await supabase
         .from('cotizaciones')
         .insert([quotationPayload])
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('!!! Error al insertar cotización:', error);
+        throw error;
+      }
+      console.log('✓ Cotización insertada exitosamente');
       result = { success: true, data, message: 'Cotización guardada correctamente', isNew: true };
     }
 
+    console.log('=== SAVE QUOTATION COMPLETADO EXITOSAMENTE ===');
     return result;
   } catch (error) {
-    console.error('Error saving quotation:', error);
+    console.error('!!! ERROR CRÍTICO EN SAVE QUOTATION ===');
+    console.error('Error:', error);
+    console.error('Error message:', error.message);
+    console.error('Error code:', error.code);
+    console.error('Error details:', error.details);
+    console.error('Stack trace:', error.stack);
     return { success: false, message: error.message };
   }
 };

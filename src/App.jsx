@@ -45,12 +45,25 @@ function App() {
   }, []);
 
   const handleSaveQuotation = async () => {
+    console.log('=== HANDLE SAVE QUOTATION INICIADO ===');
+    
+    // Timeout de seguridad para evitar que el botón se quede pegado
+    const timeoutId = setTimeout(() => {
+      console.warn('⚠️  TIMEOUT: Guardado de cotización excedió los 5 segundos');
+      setSaveStatus({ 
+        loading: false, 
+        error: 'Tiempo de espera agotado. Verifica tu conexión a internet.', 
+        message: null 
+      });
+    }, 5000);
+
     try {
       setSaveStatus({ loading: true, message: null, error: null });
       
       // Debug: Log del estado actual
       console.log('Estado actual para guardar:', state);
       console.log('Duración del viaje:', tripDuration);
+      console.log('ID actual:', currentQuotationId);
       
       // Validar datos antes de guardar
       const validation = validateQuotationData(state);
@@ -58,6 +71,7 @@ function App() {
       
       if (!validation.valid) {
         console.log('Errores de validación:', validation.errors);
+        clearTimeout(timeoutId);
         setSaveStatus({ 
           loading: false, 
           error: 'No se puede guardar: ' + validation.errors.join(', '), 
@@ -77,8 +91,11 @@ function App() {
       const sanitizedData = sanitizeQuotation(quotationData);
       console.log('Datos sanitizados para guardar:', sanitizedData);
       
+      console.log('>>> Intentando guardar en Supabase...');
       const result = await saveQuotationToSupabase(sanitizedData);
-      console.log('Resultado de guardado:', result);
+      console.log('Resultado de guardado en Supabase:', result);
+      
+      clearTimeout(timeoutId);
       
       if (result.success) {
         setCurrentQuotationId(result.data.id);
@@ -88,26 +105,85 @@ function App() {
           error: null 
         });
         
+        console.log('✓ Cotización guardada exitosamente');
+        
         // Limpiar el mensaje después de 3 segundos
         setTimeout(() => {
           setSaveStatus(prev => ({ ...prev, message: null }));
         }, 3000);
       } else {
-        console.log('Error en guardado:', result.message);
+        console.log('Error en guardado Supabase:', result.message);
+        console.log('>>> Intentando guardar en localStorage como fallback...');
+        
+        // Fallback a localStorage si Supabase falla
+        const { saveQuotation: saveToLocalStorage } = await import('./services/storageService.js');
+        const localResult = saveToLocalStorage(sanitizedData);
+        console.log('Resultado de guardado en localStorage:', localResult);
+        
+        if (localResult.success) {
+          setCurrentQuotationId(localResult.id);
+          setSaveStatus({ 
+            loading: false, 
+            message: 'Cotización guardada localmente (Supabase no disponible)', 
+            error: null 
+          });
+          
+          setTimeout(() => {
+            setSaveStatus(prev => ({ ...prev, message: null }));
+          }, 5000);
+        } else {
+          setSaveStatus({ 
+            loading: false, 
+            error: 'Error al guardar: ' + result.message + ' (localStorage también falló)', 
+            message: null 
+          });
+        }
+      }
+    } catch (error) {
+      clearTimeout(timeoutId);
+      console.error('!!! ERROR CRÍTICO AL GUARDAR COTIZACIÓN !!!');
+      console.error('Error:', error);
+      console.error('Stack trace:', error.stack);
+      
+      // Intentar guardar en localStorage como fallback
+      console.log('>>> Intentando guardar en localStorage como fallback (catch)...');
+      try {
+        const quotationData = {
+          ...state,
+          tripDuration,
+          id: currentQuotationId || state.id
+        };
+        const sanitizedData = sanitizeQuotation(quotationData);
+        const { saveQuotation: saveToLocalStorage } = await import('./services/storageService.js');
+        const localResult = saveToLocalStorage(sanitizedData);
+        
+        if (localResult.success) {
+          setCurrentQuotationId(localResult.id);
+          setSaveStatus({ 
+            loading: false, 
+            message: 'Cotización guardada localmente (error en Supabase)', 
+            error: null 
+          });
+          
+          setTimeout(() => {
+            setSaveStatus(prev => ({ ...prev, message: null }));
+          }, 5000);
+        } else {
+          setSaveStatus({ 
+            loading: false, 
+            error: 'Error crítico: ' + error.message, 
+            message: null 
+          });
+        }
+      } catch (localError) {
+        console.error('!!! ERROR EN FALLBACK LOCALSTORAGE !!!');
+        console.error('Error:', localError);
         setSaveStatus({ 
           loading: false, 
-          error: result.message, 
+          error: 'Error al guardar la cotización: ' + error.message, 
           message: null 
         });
       }
-    } catch (error) {
-      console.error('Error crítico al guardar:', error);
-      console.error('Stack trace:', error.stack);
-      setSaveStatus({ 
-        loading: false, 
-        error: 'Error al guardar la cotización: ' + error.message, 
-        message: null 
-      });
     }
   };
 

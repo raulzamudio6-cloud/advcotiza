@@ -36,11 +36,19 @@ export const Accordion = ({
   return (
     <div className={clsx('border border-gray-200 rounded-lg overflow-hidden', className)}>
       {/* Header del acordeón */}
-      <button
+      <div
+        role="button"
+        tabIndex={0}
         onClick={handleToggle}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleToggle();
+          }
+        }}
         className={clsx(
           'w-full px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors duration-200',
-          'flex items-center justify-between text-left',
+          'flex items-center justify-between text-left cursor-pointer',
           'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-inset',
           headerClassName
         )}
@@ -54,10 +62,10 @@ export const Accordion = ({
               <ChevronRight className="w-5 h-5 text-gray-600" />
             )}
           </div>
-          
+
           {/* Título */}
           <span className="font-medium text-gray-800">{title}</span>
-          
+
           {/* Indicador de datos */}
           {hasData && !isExpanded && (
             <div className="flex items-center space-x-1">
@@ -66,12 +74,12 @@ export const Accordion = ({
             </div>
           )}
         </div>
-        
+
         {/* Estado */}
         <div className="text-sm text-gray-500">
           {isExpanded ? 'Contraer' : 'Expandir'}
         </div>
-      </button>
+      </div>
 
       {/* Contenido del acordeón */}
       <div
