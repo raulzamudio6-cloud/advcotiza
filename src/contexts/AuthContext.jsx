@@ -196,33 +196,28 @@ export const AuthProvider = ({ children }) => {
   const signInWithGoogle = async () => {
     try {
       const redirectUrl = `${window.location.origin}/auth/callback`;
-      
-      // Validar que window.location.origin esté configurado correctamente
+
       if (!window.location.origin || window.location.origin === 'null') {
-        setToast({ 
-          message: 'Error: window.location.origin no está definido. Verifica que la app se esté ejecutando en un servidor.', 
-          type: 'error' 
+        setToast({
+          message: 'Error de configuración de servidor: verifica que la app se esté ejecutando en un entorno válido.',
+          type: 'error',
+          duration: 8000
         });
-        throw new Error('window.location.origin no está definido');
+        return null;
       }
 
-      // Validar que la URL de redirección sea válida
-      const validOrigins = [
-        'http://localhost:3000',
-        'http://localhost:5173',
-        'http://127.0.0.1:3000',
-        'http://127.0.0.1:5173',
-        'https://localhost:3000',
-        'https://localhost:5173'
-      ];
-      
-      // En producción, validar que el origen coincida con el dominio configurado en Supabase
-      const isDevelopment = window.location.hostname === 'localhost' || 
-                           window.location.hostname === '127.0.0.1';
-      
-      if (!isDevelopment) {
-        console.warn('⚠️  Modo producción detectado');
-        console.warn('⚠️  Asegúrate de que el dominio actual esté configurado en Supabase Dashboard > Authentication > URL Configuration');
+      const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const hasSupabaseClient = Boolean(supabase?.auth?.signInWithOAuth);
+      const hasSupabaseConfig = Boolean(
+        import.meta.env.VITE_SUPABASE_URL &&
+        import.meta.env.VITE_SUPABASE_ANON_KEY
+      );
+
+      if (!hasSupabaseClient || !hasSupabaseConfig) {
+        const configMessage = 'Error de configuración de servidor: revisa las variables de entorno de Supabase.';
+        console.warn('[Auth] No se puede iniciar el login porque Supabase no está configurado correctamente.');
+        setToast({ message: configMessage, type: 'error', duration: 8000 });
+        return null;
       }
 
       console.log('=== DIAGNÓSTICO DE LOGIN ===');
@@ -245,30 +240,30 @@ export const AuthProvider = ({ children }) => {
       });
 
       if (error) {
-        // Mostrar notificación visual del error
         const errorMessage = error.message || 'Error desconocido al iniciar sesión con Google';
-        
+
         if (error.status === 400 && errorMessage.includes('Unsupported provider')) {
-          setToast({ 
-            message: 'El proveedor de Google no está habilitado en Supabase. Habilita el proveedor en Authentication > Providers > Google', 
+          setToast({
+            message: 'El proveedor de Google no está habilitado en Supabase. Habilita el proveedor en Authentication > Providers > Google',
             type: 'error',
             duration: 10000
           });
         } else if (errorMessage.includes('redirect_uri_mismatch')) {
-          setToast({ 
-            message: 'Error de redirección: Verifica que las URIs en Google Cloud Console coincidan con ' + redirectUrl, 
+          setToast({
+            message: 'Error de redirección: verifica que las URIs en Google Cloud Console coincidan con ' + redirectUrl,
             type: 'error',
             duration: 10000
           });
         } else {
-          setToast({ 
-            message: 'Error al iniciar sesión: ' + errorMessage, 
-            type: 'error' 
+          setToast({
+            message: 'Error al iniciar sesión: ' + errorMessage,
+            type: 'error',
+            duration: 8000
           });
         }
-        
+
         console.error('ERROR COMPLETO DE SUPABASE:', JSON.stringify(error, null, 2));
-        throw error;
+        return null;
       }
 
       console.log('✓ signInWithOAuth ejecutado correctamente');
@@ -277,7 +272,14 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('ERROR EN try/catch de signInWithGoogle:', JSON.stringify(error, null, 2));
       console.error('Stack trace:', error.stack);
-      throw error;
+      setToast({
+        message: 'Error de configuración de servidor: revisa las variables de entorno de Supabase.',
+        type: 'error',
+        duration: 8000
+      });
+      return null;
+    } finally {
+      setLoading(false);
     }
   };
 
