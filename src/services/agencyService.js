@@ -54,7 +54,15 @@ export const createAgencyConfig = async (config) => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase error creating agency config:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      });
+      throw error;
+    }
 
     return data;
   } catch (error) {
@@ -86,7 +94,15 @@ export const updateAgencyConfig = async (config) => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase error updating agency config:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      });
+      throw error;
+    }
 
     return data;
   } catch (error) {

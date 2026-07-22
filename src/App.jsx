@@ -479,7 +479,7 @@ function App() {
                 </div>
                 <div className="border-t border-gray-700 mt-8 pt-6 text-center">
                   <p className="text-gray-400 text-sm">
-                    © 2024 AdvCotiza. Construido con React y tecnologías web modernas.
+                    © 2026 SyMaletaLista. Construido con React y tecnologías web modernas.
                   </p>
                 </div>
               </div>

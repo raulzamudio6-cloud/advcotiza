@@ -181,7 +181,7 @@ export const ExcelExport = ({ state, calculations }) => {
       ['INFORMACIÓN DE EXPORTACIÓN'],
       ['Fecha de Generación:', new Date().toLocaleDateString('es-MX')],
       ['Hora de Generación:', new Date().toLocaleTimeString('es-MX')],
-      ['Sistema:', 'AdvCotiza v2.0']
+      ['Sistema:', 'SyMaletaLista v2.0']
     ];
 
     const wsTotals = XLSX.utils.aoa_to_sheet(totalsData);

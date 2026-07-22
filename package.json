@@ -2,6 +2,7 @@
   "name": "adv-cotiza",
   "version": "2.0.0",
   "description": "Professional Travel Quotation System",
+  "type": "module",
   "main": "index.js",
   "scripts": {
     "dev": "vite",

@@ -26,21 +26,40 @@ const AgencySettings = () => {
   const [message, setMessage] = useState(null);
 
   useEffect(() => {
-    if (!loading && agencyConfig) {
-      setFormData({
-        agencyName: agencyConfig.agencyName || '',
-        logoUrl: agencyConfig.logoUrl || '',
-        contact: {
-          phone: agencyConfig.contact?.phone || '',
-          email: agencyConfig.contact?.email || ''
-        },
-        socialMedia: {
-          instagram: agencyConfig.socialMedia?.instagram || '',
-          facebook: agencyConfig.socialMedia?.facebook || ''
-        },
-        policies: agencyConfig.policies || ['']
-      });
-      setLogoPreview(agencyConfig.logoUrl || null);
+    if (!loading) {
+      if (agencyConfig) {
+        // User has existing config - populate with config data
+        setFormData({
+          agencyName: agencyConfig.agencyName || '',
+          logoUrl: agencyConfig.logoUrl || '',
+          contact: {
+            phone: agencyConfig.contact?.phone || '',
+            email: agencyConfig.contact?.email || ''
+          },
+          socialMedia: {
+            instagram: agencyConfig.socialMedia?.instagram || '',
+            facebook: agencyConfig.socialMedia?.facebook || ''
+          },
+          policies: agencyConfig.policies || ['']
+        });
+        setLogoPreview(agencyConfig.logoUrl || null);
+      } else {
+        // New user without config - populate with empty defaults
+        setFormData({
+          agencyName: '',
+          logoUrl: '',
+          contact: {
+            phone: '',
+            email: ''
+          },
+          socialMedia: {
+            instagram: '',
+            facebook: ''
+          },
+          policies: ['']
+        });
+        setLogoPreview(null);
+      }
     }
   }, [agencyConfig, loading]);
 
@@ -70,16 +89,28 @@ const AgencySettings = () => {
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
 
+      console.log('Uploading logo to bucket: agency-logos, fileName:', fileName);
+
       const { data, error } = await supabase.storage
         .from('agency-logos')
         .upload(fileName, file);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase storage error uploading logo:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
+        throw error;
+      }
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('agency-logos')
         .getPublicUrl(fileName);
+
+      console.log('Logo uploaded successfully, publicUrl:', publicUrl);
 
       setLogoPreview(publicUrl);
       setFormData(prev => ({ ...prev, logoUrl: publicUrl }));

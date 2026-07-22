@@ -23,6 +23,12 @@ export const AuthProvider = ({ children }) => {
     console.log('Keys en localStorage:', localStorageKeys);
     const authKeys = localStorageKeys.filter(key => key.includes('sb-') || key.includes('auth'));
     console.log('Auth-related keys:', authKeys);
+
+    // Limpiar accessToken residual si existe (no es de Supabase)
+    if (localStorageKeys.includes('accessToken')) {
+      console.log('>>> Limpiando accessToken residual...');
+      localStorage.removeItem('accessToken');
+    }
     
     if (authKeys.length > 0) {
       authKeys.forEach(key => {
@@ -41,14 +47,7 @@ export const AuthProvider = ({ children }) => {
       console.warn('⚠️  No se encontraron tokens de autenticación en localStorage');
     }
 
-    // Timeout de seguridad: forzar loading a false después de 5 segundos
-    const timeoutId = setTimeout(() => {
-      console.warn('⚠️  TIMEOUT DE SEGURIDAD: 5 segundos sin respuesta de Supabase');
-      console.warn('⚠️  Forzando setLoading(false) para evitar bloqueo de UI');
-      setLoading(false);
-    }, 5000);
-
-    // Get initial session - envuelto en try-catch global
+    // Get initial session - envuelto en try-catch-finally para garantizar setLoading(false)
     const initializeSession = async () => {
       try {
         console.log('>>> Llamando a supabase.auth.getSession()...');
@@ -69,22 +68,15 @@ export const AuthProvider = ({ children }) => {
         console.log('>>> Antes de setSession(session)');
         setSession(session);
         console.log('<<< Después de setSession(session)');
-        
-        console.log('>>> Antes de setLoading(false)');
-        setLoading(false);
-        console.log('<<< Después de setLoading(false)');
-        console.log('Estado final - session:', session ? 'Presente' : 'Ausente', 'loading:', false);
-        
-        // Limpiar timeout si la sesión se cargó exitosamente
-        clearTimeout(timeoutId);
       } catch (error) {
         console.error('!!! ERROR en supabase.auth.getSession() !!!');
         console.error('Error:', error);
         console.error('Stack trace:', error.stack);
-        console.error('>>> Forzando setLoading(false) debido a error');
+      } finally {
+        // Garantizar que loading se establece a false independientemente del resultado
+        console.log('>>> Ejecutando finally: setLoading(false)');
         setLoading(false);
-        console.error('<<< setLoading(false) forzado completado');
-        clearTimeout(timeoutId);
+        console.log('<<< finally completado');
       }
     };
 
@@ -114,6 +106,10 @@ export const AuthProvider = ({ children }) => {
           console.log('>>> Antes de setSession(session) en onAuthStateChange');
           setSession(session);
           console.log('<<< Después de setSession(session) en onAuthStateChange');
+          
+          // Ensure loading is set to false after auth state changes
+          setLoading(false);
+          console.log('<<< setLoading(false) llamado en onAuthStateChange');
           
           // Create profile after first login
           if (event === 'SIGNED_IN' && session?.user) {
@@ -147,7 +143,6 @@ export const AuthProvider = ({ children }) => {
 
     return () => {
       console.log('>>> Limpiando onAuthStateChange subscription...');
-      clearTimeout(timeoutId);
       subscription.unsubscribe();
       console.log('<<< onAuthStateChange subscription limpiada');
     };
@@ -159,7 +154,7 @@ export const AuthProvider = ({ children }) => {
       console.log('Usuario ID:', user.id);
       console.log('Usuario Email:', user.email);
       console.log('User Metadata:', JSON.stringify(user.user_metadata, null, 2));
-      
+
       // Check if profile already exists
       const { data: existingProfile } = await supabase
         .from('profiles')
@@ -169,14 +164,13 @@ export const AuthProvider = ({ children }) => {
 
       if (!existingProfile) {
         console.log('Perfil no existe, creando nuevo perfil...');
-        
+
         // Create new profile
         const { error } = await supabase
           .from('profiles')
           .insert([
             {
               id: user.id,
-              email: user.email,
               full_name: user.user_metadata?.full_name || user.email,
               avatar_url: user.user_metadata?.avatar_url || null
             }
@@ -184,7 +178,8 @@ export const AuthProvider = ({ children }) => {
 
         if (error) {
           console.error('Error al crear perfil:', error);
-          setToast({ message: 'Error al crear perfil: ' + error.message, type: 'error' });
+          // No mostrar toast - es un error de RLS que el usuario no puede resolver desde el cliente
+          console.warn('⚠️  La creación del perfil falló (posiblemente por RLS). El login continuará normalmente.');
         } else {
           console.log('✓ Perfil creado exitosamente');
         }
@@ -193,7 +188,8 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Error en createProfile:', error);
-      setToast({ message: 'Error en createProfile: ' + error.message, type: 'error' });
+      // No mostrar toast - es un error de RLS que el usuario no puede resolver desde el cliente
+      console.warn('⚠️  La creación del perfil falló (posiblemente por RLS). El login continuará normalmente.');
     }
   };
 

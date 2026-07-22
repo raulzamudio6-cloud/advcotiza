@@ -337,46 +337,39 @@ export const validateQuotationData = (data) => {
       }
     }
     
-    // Validar pasajeros
-    if (!Array.isArray(data.passengers) || data.passengers.length === 0) {
-      errors.push('Se requiere al menos un pasajero');
-    } else {
+    // Validar pasajeros - permitir array vacío para cotizaciones en borrador
+    if (!Array.isArray(data.passengers)) {
+      errors.push('Los pasajeros deben ser un array');
+    } else if (data.passengers.length > 0) {
+      // Solo validar nombres si hay pasajeros
       data.passengers.forEach((passenger, index) => {
         if (!passenger.name || passenger.name.trim() === '') {
           errors.push(`El nombre del pasajero ${index + 1} es requerido`);
         }
       });
     }
-    
-    // Validar vuelos
-    if (!Array.isArray(data.flights) || data.flights.length === 0) {
-      errors.push('Se requiere al menos una opción de vuelo');
-    } else {
+
+    // Validar vuelos - permitir array vacío para cotizaciones en borrador
+    if (!Array.isArray(data.flights)) {
+      errors.push('Los vuelos deben ser un array');
+    } else if (data.flights.length > 0) {
       const selectedFlight = data.flights.find(f => f.selected);
-      if (!selectedFlight) {
-        errors.push('Debe seleccionar una opción de vuelo');
-      } else {
+      if (selectedFlight) {
         if (!selectedFlight.price || selectedFlight.price <= 0) {
           errors.push('El vuelo seleccionado debe tener un precio válido');
         }
       }
     }
-    
-    // Validar alojamiento
-    if (!Array.isArray(data.accommodations) || data.accommodations.length === 0) {
-      errors.push('Se requiere al menos una opción de alojamiento');
-    } else {
+
+    // Validar alojamiento - permitir array vacío para cotizaciones en borrador
+    if (!Array.isArray(data.accommodations)) {
+      errors.push('Los alojamientos deben ser un array');
+    } else if (data.accommodations.length > 0) {
       const selectedAccommodation = data.accommodations.find(a => a.selected);
-      if (!selectedAccommodation) {
-        errors.push('Debe seleccionar una opción de alojamiento');
-      } else {
-        // Validación condicional: solo validar precio si el hotel tiene nombre
-        if (selectedAccommodation.name && selectedAccommodation.name.trim() !== '') {
-          // Convertir totalPrice a número para validación (coincidente con el campo del formulario)
-          const accommodationPrice = parseFloat(selectedAccommodation.totalPrice) || 0;
-          if (accommodationPrice <= 0) {
-            errors.push('El alojamiento seleccionado debe tener un precio válido mayor a 0');
-          }
+      if (selectedAccommodation && selectedAccommodation.name && selectedAccommodation.name.trim() !== '') {
+        const accommodationPrice = parseFloat(selectedAccommodation.totalPrice) || 0;
+        if (accommodationPrice <= 0) {
+          errors.push('El alojamiento seleccionado debe tener un precio válido mayor a 0');
         }
       }
     }

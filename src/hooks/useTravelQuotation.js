@@ -354,7 +354,7 @@ function quotationReducer(state, action) {
       };
 
     case actionTypes.RESET_QUOTATION:
-      console.log('Reducer: RESET_QUOTATION dispatched, returning fresh initialState');
+      console.log('Reducer: RESET_QUOTATION dispatched, returning fresh initialState with empty arrays');
       return {
         quotationTitle: '',
         clientInfo: {
@@ -364,87 +364,8 @@ function quotationReducer(state, action) {
         },
         commissionRate: 20,
         passengers: [],
-        flights: [
-          {
-            id: 1,
-            airline: '',
-            price: 0,
-            route: {
-              origin: '',
-              destination: ''
-            },
-            outbound: {
-              date: '',
-              departureTime: '',
-              arrivalTime: '',
-              duration: '',
-              stops: ''
-            },
-            return: {
-              date: '',
-              departureTime: '',
-              arrivalTime: '',
-              duration: '',
-              stops: ''
-            },
-            luggageDetail: '',
-            selected: false
-          },
-          {
-            id: 2,
-            airline: '',
-            price: 0,
-            route: {
-              origin: '',
-              destination: ''
-            },
-            outbound: {
-              date: '',
-              departureTime: '',
-              arrivalTime: '',
-              duration: '',
-              stops: ''
-            },
-            return: {
-              date: '',
-              departureTime: '',
-              arrivalTime: '',
-              duration: '',
-              stops: ''
-            },
-            luggageDetail: '',
-            selected: false
-          }
-        ],
-        accommodations: [
-          {
-            id: 1,
-            name: '',
-            category: 3,
-            totalPrice: 0,
-            description: '',
-            selected: false,
-            images: ['', '', '']
-          },
-          {
-            id: 2,
-            name: '',
-            category: 3,
-            totalPrice: 0,
-            description: '',
-            selected: false,
-            images: ['', '', '']
-          },
-          {
-            id: 3,
-            name: '',
-            category: 3,
-            totalPrice: 0,
-            description: '',
-            selected: false,
-            images: ['', '', '']
-          }
-        ],
+        flights: [],
+        accommodations: [],
         additionalServices: {
           transfers: {
             standard: false,
