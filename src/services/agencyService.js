@@ -116,15 +116,43 @@ export const updateAgencyConfig = async (config) => {
  */
 export const saveAgencyConfig = async (config) => {
   try {
-    const existing = await getAgencyConfig();
-    
-    if (existing) {
-      return await updateAgencyConfig(config);
-    } else {
-      return await createAgencyConfig(config);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const agencyPayload = {
+      user_id: user.id,
+      nombre_comercial: config.nombre_comercial,
+      logo_url: config.logo_url || null,
+      whatsapp: config.whatsapp || null,
+      email_contacto: config.email_contacto || null,
+      instagram: config.instagram || null,
+      facebook: config.facebook || null,
+      terminos_condiciones: config.terminos_condiciones || null
+    };
+
+    const { data, error } = await supabase
+      .from('agencias')
+      .upsert(agencyPayload, { onConflict: 'user_id' })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Supabase error saving agency config with upsert:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      });
+      throw error;
     }
+
+    return data;
   } catch (error) {
-    console.error('Error saving agency config:', error);
+    console.error('Error saving agency config:', {
+      message: error.message,
+      stack: error.stack,
+      error
+    });
     throw error;
   }
 };
