@@ -1,262 +1,206 @@
-# AdvCotiza - Sistema Profesional de Cotización de Viajes
+# AdvCotiza
 
-Una aplicación web sofisticada diseñada para agencias de viajes y consultores para crear cotizaciones de viajes profesionales con cálculos en tiempo real, gestión de comisiones y exportación múltiple.
+Sistema web para que agencias de viajes creen, calculen, guarden y compartan cotizaciones profesionales.
 
-## Características
+## Estado de la arquitectura
 
-### Funcionalidad Principal
-- **Gestión Dinámica de Pasajeros**: Agregar/eliminar pasajeros con validación de edad para menores
-- **Comparación de Vuelos Multi-opción**: Comparar hasta 2 opciones de vuelos con precios detallados
-- **Sistema de Selección de Hoteles**: Elegir hasta 3 opciones de hospedaje con calificación de estrellas
-- **Integración de Servicios Adicionales**: Gestionar traslados y actividades/tours adicionales
-- **Cálculos en Tiempo Real**: Cálculos automáticos de totales basados en selecciones
-- **Panel de Vista Previa**: Vista previa instantánea de detalles de cotización
-- **Generación Profesional de PDF**: Exportar cotizaciones como PDF profesionalmente formateados
+La aplicación es un frontend SPA construido con React y Vite. El navegador consume directamente la API de Supabase mediante `@supabase/supabase-js`; no existe un backend Node.js propio en este repositorio.
 
-### Características de Negocio Críticas
-- **Sistema de Comisión de Agencia**: Campo global para configurar porcentaje de comisión
-- **Lógica de Precios con Markup**: Todos los precios se tratan como costos netos con aplicación automática de comisión
-- **Transparencia Interna**: Desglose de costo neto, comisión y precio final para el administrador
-- **Exportación a Excel**: Generación de archivos Excel con múltiples hojas y estructura detallada
-- **Interfaz 100% en Español**: Toda la aplicación completamente traducida al español
+La arquitectura de datos prevista tiene dos entornos aislados:
 
-### Características Técnicas
-- **Arquitectura de Componentes**: Limpia separación de responsabilidades con componentes reutilizables
-- **Gestión de Estado**: Hook personalizado de React con useReducer para lógica de estado compleja
-- **Diseño Responsivo**: Diseño mobile-first con Tailwind CSS
-- **UI/UX Moderna**: Interfaz corporativa limpia con interacciones intuitivas
-- **Validación de Formularios**: Validación del lado del cliente con mensajes amigables
+| Entorno | Aplicación | Persistencia | Propósito |
+| --- | --- | --- | --- |
+| Local / pruebas | Vite en `http://localhost:3000` | PostgreSQL local, expuesto mediante Supabase local | Desarrollo, pruebas manuales e integración local |
+| Staging | Build desplegado en el entorno de staging | Proyecto Supabase independiente con PostgreSQL administrado | Validación antes de producción |
 
-## Stack Tecnológico
+Supabase no reemplaza PostgreSQL: su base de datos es PostgreSQL y además proporciona Auth, PostgREST y Storage. Como el cliente usa autenticación y archivos además de tablas, el entorno local recomendado es la [instancia local de Supabase](https://supabase.com/docs/guides/cli/local-development), que incluye PostgreSQL local. Una conexión directa a un PostgreSQL crudo no es compatible con el frontend actual sin añadir un backend o una API intermedia.
 
-### Frontend
-- **React 18**: React moderno con arquitectura de Hooks
-- **Vite**: Servidor de desarrollo rápido y herramienta de build
-- **Tailwind CSS**: Framework de CSS utility-first
-- **Lucide React**: Iconografía bella y consistente
+**Importante:** nunca se deben compartir credenciales, usuarios, datos ni URLs entre local, staging y producción. Cada entorno debe tener su propio proyecto/base de datos y sus propias variables `VITE_*`.
 
-### Librerías Adicionales
-- **jsPDF**: Generación profesional de documentos PDF
-- **xlsx**: Exportación a Excel con SheetJS
-- **date-fns**: Utilidades modernas de fechas JavaScript
-- **clsx**: Utilidad de className condicional
+## Funcionalidad
 
-## 📋 Requirements
+- Gestión de pasajeros, incluidos menores.
+- Comparación y selección de opciones de vuelos.
+- Comparación y selección de alojamientos.
+- Traslados, tours y servicios adicionales.
+- Cálculo en tiempo real de costos netos, comisión y precio final.
+- Vista previa de la cotización.
+- Exportación a PDF y Excel.
+- Configuración de la agencia, logo, contacto, redes sociales y políticas.
+- Historial de cotizaciones por usuario.
+- Inicio de sesión con Google mediante Supabase Auth.
+- Fallback a `localStorage` para guardar cotizaciones si Supabase no está disponible.
 
-### Prerequisites
-- Node.js (version 16 or higher)
-- npm or yarn package manager
+## Stack tecnológico
 
-### Browser Support
-- Chrome/Edge 90+
-- Firefox 88+
-- Safari 14+
+- React 18 y React Router 7.
+- Vite 4 y Tailwind CSS 3.
+- Supabase JS para Auth, PostgreSQL vía API y Storage.
+- PostgreSQL para persistencia en local y staging.
+- `jsPDF` y `html2canvas` para PDF.
+- `xlsx` para Excel.
+- `date-fns`, `clsx` y `lucide-react`.
 
-## 🚀 Getting Started
+## Requisitos
 
-### Installation
+- Node.js 16 o superior.
+- npm.
+- Para pruebas con persistencia local: [Supabase CLI](https://supabase.com/docs/guides/cli) y Docker Desktop.
+- Para staging: un proyecto Supabase independiente y un proveedor OAuth de Google configurado.
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd adv-cotiza
-   ```
+## Puesta en marcha local
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+### 1. Instalar la aplicación
 
-### Development
+```bash
+npm install
+```
 
-Start the development server:
+### 2. Levantar PostgreSQL y los servicios locales
+
+El repositorio contiene migraciones SQL, pero todavía no incluye un archivo `config.toml` ni scripts npm para administrar el stack local. Cuando se habilite Supabase CLI en el proyecto, el flujo esperado será:
+
+```bash
+supabase start
+supabase db reset
+```
+
+`supabase db reset` aplica las migraciones de `supabase/migrations/` sobre el PostgreSQL local. La URL y la clave anon que imprime `supabase start` deben usarse en el archivo `.env.local`.
+
+### 3. Configurar variables locales
+
+Crear `.env.local` en la raíz:
+
+```env
+VITE_SUPABASE_URL=http://127.0.0.1:54321
+VITE_SUPABASE_ANON_KEY=tu-clave-anon-local
+```
+
+No subir `.env.local` al repositorio. Vite solo expone al navegador variables con prefijo `VITE_`; la clave anon es pública por diseño, pero el aislamiento y la seguridad real dependen de Auth y de las políticas RLS.
+
+### 4. Ejecutar el frontend
+
 ```bash
 npm run dev
 ```
 
-The application will be available at `http://localhost:3000`
+La URL local es `http://localhost:3000`. Para comprobar un build de producción local:
 
-### Production Build
+```bash
+npm run build
+npm run preview
+```
 
-Create an optimized production build:
+El script `npm run serve` no debe usarse actualmente: `package.json` lo declara, pero el repositorio no contiene `server.js`.
+
+## Configuración de staging
+
+Staging debe usar un proyecto Supabase separado del entorno local y de producción.
+
+1. Crear el proyecto Supabase de staging.
+2. Aplicar las migraciones de `supabase/migrations/` al proyecto de staging, preferiblemente con Supabase CLI.
+3. Habilitar Google en **Authentication > Providers**.
+4. Registrar la URL de staging como redirect URL de Supabase y de Google OAuth, incluyendo `/auth/callback`.
+5. Configurar en el proveedor de despliegue:
+
+```env
+VITE_SUPABASE_URL=https://tu-proyecto-staging.supabase.co
+VITE_SUPABASE_ANON_KEY=tu-clave-anon-staging
+```
+
+6. Ejecutar el build usando las variables de staging:
+
 ```bash
 npm run build
 ```
 
-Preview the production build locally:
-```bash
-npm run preview
-```
+`vercel.json` envía todas las rutas al `index.html`, lo que permite que React Router resuelva `/auth/callback` y las vistas de la SPA en Vercel.
 
-## 📖 Usage Guide
+## Arquitectura del código
 
-### 1. Client Information
-- Enter client's full name, email, and phone number
-- All fields are validated for proper format
-
-### 2. Passenger Management
-- Click "Add Passenger" to add travelers
-- For minors, select "Minor" and specify age
-- Remove passengers using the delete button
-
-### 3. Flight Options
-- Configure up to 2 flight options
-- Enter airline, dates, and price per passenger
-- Include optional luggage (+$50 per passenger)
-- Select one option by clicking on the card
-
-### 4. Accommodation Selection
-- Configure up to 3 hotel options
-- Set hotel name, star rating, and total price
-- Add descriptions for better client understanding
-- Select one option by clicking on the card
-
-### 5. Additional Services
-- **Transfers**: Enable airport/hotel transfers with custom pricing
-- **Extras**: Add tours, parks, or activities with individual pricing
-
-### 6. Live Preview
-- Right panel shows real-time quotation summary
-- Displays all selected options and running totals
-- Updates automatically as you make changes
-
-### 7. PDF Generation
-- Click "Generate PDF Quotation" once all required fields are complete
-- PDF includes client info, selected options, and detailed pricing
-- Professional formatting suitable for client presentation
-
-## 🏗 Project Architecture
-
-### Component Structure
-```
+```text
 src/
+├── main.jsx                         # Entrada, BrowserRouter y utilidades de diagnóstico
+├── App.jsx                          # Composición de vistas y flujo principal
 ├── components/
-│   ├── UI/
-│   │   ├── Input.jsx          # Reusable form components
-│   │   └── Card.jsx           # Card and HotelCard components
-│   ├── PassengerManager.jsx   # Dynamic passenger management
-│   ├── FlightModule.jsx       # Flight options and comparison
-│   ├── AccommodationModule.jsx # Hotel selection interface
-│   ├── AdditionalServicesModule.jsx # Services and extras
-│   ├── PreviewPanel.jsx       # Real-time preview component
-│   └── PDFGenerator.jsx      # PDF export functionality
+│   ├── UI/                          # Componentes visuales reutilizables
+│   ├── PassengerManager.jsx         # Pasajeros
+│   ├── FlightModule.jsx             # Vuelos
+│   ├── HotelModule.jsx              # Alojamientos
+│   ├── AdditionalServicesModule.jsx # Traslados y extras
+│   ├── PreviewPanel.jsx             # Vista previa y totales
+│   ├── PricingLogic.jsx             # Configuración de comisión
+│   ├── QuotationHistory.jsx         # Historial y acciones de cotizaciones
+│   ├── AgencySettings.jsx           # Configuración de agencia
+│   ├── PDFGenerator.jsx             # Exportación PDF
+│   ├── ExcelExport.jsx              # Exportación Excel
+│   └── AuthCallback.jsx             # Retorno de OAuth
 ├── hooks/
-│   └── useTravelQuotation.js # Custom state management hook
-├── App.jsx                   # Main application component
-├── main.jsx                  # Application entry point
-└── index.css                 # Global styles and Tailwind
+│   └── useTravelQuotation.js        # Estado del formulario y useReducer
+├── contexts/
+│   ├── AuthContext.jsx              # Sesión y Google OAuth
+│   └── AgencyConfigContext.jsx       # Configuración de agencia
+├── services/
+│   ├── quotationService.js           # CRUD de cotizaciones en Supabase
+│   ├── agencyService.js              # CRUD de agencias en Supabase
+│   └── storageService.js             # Fallback de cotizaciones en localStorage
+├── lib/
+│   └── supabaseClient.js             # Cliente y fallback cuando faltan variables
+└── utils/
+    ├── calculations.js               # Validación, sanitización y cálculos
+    ├── currencyUtils.js              # Monedas
+    └── formatters.js                 # Formateo de datos
 ```
 
-### State Management
-The application uses a custom hook `useTravelQuotation` that implements:
-- **useReducer** for complex state logic
-- **Action creators** for predictable state updates
-- **Computed values** for derived calculations
-- **Separation of concerns** between data capture and business logic
+### Flujo de ejecución
 
-### Key Design Patterns
-- **Container/Presentational**: Components separated by logic vs presentation
-- **Custom Hooks**: Reusable state logic encapsulated in hooks
-- **Component Composition**: Complex UI built from simple, reusable components
-- **Prop Drilling Minimization**: Context-like pattern with custom hook
+1. `main.jsx` monta `BrowserRouter` y `App`.
+2. `AuthProvider` recupera la sesión de Supabase y escucha cambios de autenticación.
+3. `ProtectedRoute` restringe la aplicación a usuarios autenticados; `/auth/callback` procesa el retorno de Google.
+4. `useTravelQuotation` mantiene el borrador de la cotización con `useReducer`.
+5. Los módulos editan el estado mediante acciones y `calculations.js` produce valores derivados.
+6. `App` muestra el formulario, la vista previa, el historial o ajustes, y delega persistencia a los servicios.
+7. La cotización se guarda en `cotizaciones`; si la operación falla, se intenta `localStorage`.
 
-## 🎨 Design System
+## Modelo de datos y seguridad
 
-### Color Palette
-- **Primary**: Blue (#3b82f6) for main actions and branding
-- **Success**: Green (#10b981) for positive feedback
-- **Warning**: Amber (#f59e0b) for alerts
-- **Danger**: Red (#ef4444) for destructive actions
-- **Neutral**: Gray scale for text and backgrounds
+Las migraciones actuales son la fuente de verdad del esquema:
 
-### Typography
-- **Headings**: Bold, hierarchical sizing
-- **Body**: Clean, readable sans-serif
-- **Small**: Reduced opacity for secondary information
+- `agencias`: configuración de la agencia asociada a `auth.users`.
+- `cotizaciones`: datos de la cotización en columnas `JSONB`, comisión, usuario, agencia y timestamps.
+- Storage `agency-logos`: logos de agencia.
 
-### Spacing
-- Consistent 4px base unit
-- Generous whitespace for readability
-- Responsive padding/margins
+Las tablas tienen Row Level Security (RLS): cada usuario puede consultar y modificar sus propios registros. Las políticas del bucket restringen la escritura y eliminación a la carpeta del usuario, mientras que la lectura pública permite usar los logos en documentos.
 
-## 🔧 Configuration
+`SUPABASE_SETUP.md` contiene instrucciones históricas y un esquema anterior. Para cambios nuevos o despliegues, usar `supabase/migrations/` y mantener ese documento alineado antes de reutilizar sus SQL.
 
-### Tailwind Configuration
-Extended theme includes:
-- Custom primary color palette
-- Responsive breakpoints
-- Component utility classes
+### Pendientes de arquitectura
 
-### Vite Configuration
-- React plugin for JSX support
-- Development server on port 3000
-- Optimized production builds
+- Versionar la configuración de Supabase CLI (`supabase/config.toml`) y comandos de ciclo de vida local si el equipo va a ejecutar PostgreSQL local de forma habitual.
+- `AuthContext` intenta crear registros en `profiles` después del primer login, pero esa tabla no está definida en las migraciones actuales. La creación falla de forma no bloqueante; si se necesita un perfil persistente, debe añadirse una migración y sus políticas RLS.
+- Revisar la política de inserción de `cotizaciones` junto con el flujo de creación de agencia: la migración exige una `agencia_id` perteneciente al usuario, mientras el servicio contempla guardar sin agencia cuando no encuentra configuración.
 
-## 🧪 Testing Considerations
+## Comandos disponibles
 
-While this version focuses on functionality, future testing should include:
-- Unit tests for utility functions
-- Component integration tests
-- End-to-end user flow testing
-- PDF generation validation
-- Responsive design testing
+| Comando | Uso |
+| --- | --- |
+| `npm run dev` | Servidor Vite en el puerto 3000 |
+| `npm run build` | Build de producción |
+| `npm run preview` | Servir localmente el build generado |
+| `npm run serve` | Declarado, pero requiere un `server.js` que hoy no existe |
 
-## 🚀 Deployment
+## Validación antes de publicar
 
-### Static Site Deployment
-The application builds to static files suitable for:
-- Netlify
-- Vercel
-- GitHub Pages
-- AWS S3 + CloudFront
+- Confirmar que el build termina con `npm run build`.
+- Verificar login de Google y retorno a `/auth/callback`.
+- Crear, actualizar, listar y eliminar una cotización.
+- Confirmar aislamiento entre usuarios mediante RLS.
+- Probar configuración y logo de agencia.
+- Generar PDF y Excel.
+- Comprobar que el fallback local no se confunda con la persistencia de staging.
 
-### Environment Variables
-No environment variables required for basic functionality.
+El proyecto todavía no tiene una suite automatizada configurada. Se recomienda añadir pruebas unitarias para `utils/`, pruebas de integración para los servicios y una prueba end-to-end del flujo login → cotización → guardado → exportación.
 
-## 📝 Development Notes
+## Licencia
 
-### Performance Optimizations
-- React.memo for expensive components
-- Debounced inputs for better UX
-- Lazy loading consideration for future features
-
-### Accessibility
-- Semantic HTML5 structure
-- ARIA labels where appropriate
-- Keyboard navigation support
-- Screen reader compatibility
-
-### Browser Compatibility
-- Modern JavaScript features (ES2020+)
-- CSS Grid and Flexbox
-- No IE11 support (modern browsers only)
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Commit changes: `git commit -m 'Add amazing feature'`
-4. Push to branch: `git push origin feature/amazing-feature`
-5. Open a Pull Request
-
-### Development Guidelines
-- Follow existing code style and patterns
-- Use TypeScript for new components (future enhancement)
-- Write meaningful commit messages
-- Include tests for new functionality
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- React team for the excellent framework
-- Tailwind CSS team for the utility-first CSS framework
-- Lucide for the beautiful icon set
-- jsPDF team for the PDF generation library
-
----
-
-**AdvCotiza** - Professional Travel Quotation System  
-Built with ❤️ using modern web technologies
+Este proyecto declara licencia MIT en `package.json`. No se incluye actualmente un archivo `LICENSE` en el repositorio.
